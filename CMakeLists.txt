@@ -1,6 +1,5 @@
 # Template CMakeLists.txt configuration for STM32 MCUS
 cmake_minimum_required(VERSION 3.12)
-include(./gcc-arm-none-eabi.cmake)
 
 # ##############################################################################
 # Edit your MCU information up to the next border

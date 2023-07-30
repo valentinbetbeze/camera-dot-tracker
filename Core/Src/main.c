@@ -52,17 +52,14 @@ int main(void)
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
   HAL_Init();
 
-
   /* Configure the system clock */
   SystemClock_Config();
-
 
   /* Initialize all configured peripherals */
 
 
   /* Infinite loop */
-  while (1)
-  {
+  while (1) {
 
   }
 }
@@ -73,6 +70,7 @@ int main(void)
   */
 void SystemClock_Config(void)
 {
+  HAL_StatusTypeDef err;
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
@@ -83,9 +81,10 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
+
+  err = HAL_RCC_OscConfig(&RCC_OscInitStruct);
+  if (err != HAL_OK) {
+    Error_Handler(__func__, err);
   }
 
   /** Initializes the CPU, AHB and APB buses clocks
@@ -97,9 +96,9 @@ void SystemClock_Config(void)
   RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
   RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-  {
-    Error_Handler();
+  err = HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0);
+  if (err != HAL_OK) {
+    Error_Handler(__func__, err);
   }
 }
 
@@ -108,15 +107,11 @@ void SystemClock_Config(void)
   * @brief  This function is executed in case of error occurrence.
   * @retval None
   */
-void Error_Handler(void)
+void Error_Handler(const char *func_name, HAL_StatusTypeDef err)
 {
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
   __disable_irq();
-  while (1)
-  {
-  }
-  /* USER CODE END Error_Handler_Debug */
+  printf("%i in %s: Program aborted\n", err, func_name);
+  while (1);
 }
 
 #ifdef  USE_FULL_ASSERT
@@ -133,5 +128,6 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
+  printf("Wrong parameters value: file %s on line %d\r\n", file, line);
 }
 #endif /* USE_FULL_ASSERT */

@@ -50,7 +50,7 @@ extern "C" {
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-void Error_Handler(void);
+void Error_Handler(const char *func_name, HAL_StatusTypeDef err);
 
 /* USER CODE BEGIN EFP */
 
