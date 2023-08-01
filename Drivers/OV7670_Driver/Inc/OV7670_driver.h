@@ -15,13 +15,13 @@
 extern "C" {
 #endif
 
-#include "stm32f3xx_hal.h"
 #include <stdint.h>
-
+#include "stm32f3xx_hal.h"
+#include "OV7670_config.h"
 
 /**
- * @brief Uncomment the I2C instance that is to be used
- * for communicating with the 0V7670 registers.
+ * @brief Uncomment the I2C instance that is to be used for communicating
+ * with the 0V7670 registers.
  * @warning Only one I2C instance shall be used at a time.
  * @note Default value is I2C1.
  */
@@ -34,14 +34,19 @@ extern "C" {
 #endif
 
 
+/****************** Macros ******************/
+
 #define ADDR_WRITE          (0x42)
 #define ADDR_READ           (0x43)
 
+#define OV7670_PIN_DEF(port, num)   {.PORT = port, .NUM = num}
 
-/************ Data Structures ************/
+
+/************* Data Structures **************/
 
 /**
  * @brief Simple structure to characterize a pin.
+ * @note Created for use in higher level structure OV7670_pins_t.
  */
 typedef struct {
     const GPIO_TypeDef *PORT;   // Pin port (GPIOA, GPIOB, etc.)
@@ -70,6 +75,12 @@ typedef struct {
     const pin_t PIN_PWDN;    // Power down
 } OV7670_pins_t;
 
+typedef enum {
+    OV7670_NO_ERR                       = 0,
+    OV7670_GPIO_INVALID_PORT,
+    OV7670_GPIO_INVALID_PROPERTIES,
+    OV7670_GPIO_CLOCK_DISABLED,
+} OV7670_error_t;
 
 /************ Function prototypes ************/
 
@@ -77,9 +88,9 @@ typedef struct {
  * @brief Check if the given GPIO port clock is enabled
  * 
  * @param PORT GPIO port (GPIOx)
- * @return 1 if clock is enabled; else 0
+ * @return NO_ERR if clock enable, else ERR_GPIO_CLOCK_DISABLED
  */
-uint8_t OV7670_check_gpio_clock(GPIO_TypeDef *PORT);
+OV7670_error_t OV7670_check_gpio_clock_en(const GPIO_TypeDef *PORT);
 
 
 
