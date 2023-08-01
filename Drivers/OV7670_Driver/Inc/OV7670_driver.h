@@ -16,9 +16,19 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-#include "stm32f3xx_hal.h"
+#include <stdlib.h>
+#include <string.h>
 
+#include "stm32f3xx_hal.h"
 #include "OV7670_config.h"
+
+
+/************* Global variables **************/
+
+/**
+ * @brief Driver's I2C communication handle variable
+ */
+I2C_HandleTypeDef OV7670_hi2c = {0};
 
 
 /************** Data Structures **************/
@@ -55,10 +65,10 @@ typedef struct {
 } OV7670_pins_t;
 
 /**
- * @brief Types of errors that can be encountered by the driver
- * @note * Use OV7670_get_error_type() from OV7670_utils.c to get
- * an error message from the error type. // TODO: write function
- * @note * Compatible with HAL_StatusTypeDef status
+ * @brief Types of status/erros that can be encountered.
+ * @note * Use OV7670_read_status() from OV7670_utils.c to retrieve a
+ * status from its code.
+ * @note * Compatible with HAL_StatusTypeDef status.
  */
 typedef enum {
     OV7670_NO_ERR                       = 0,
@@ -70,7 +80,8 @@ typedef enum {
     OV7670_GPIO_INVALID_PROPERTIES,
     OV7670_GPIO_CLOCK_DISABLED,
     OV7670_INT_PRIO_GRP_CONFLICT,
-} OV7670_error_t;
+    OV7670_UART_ERROR,
+} OV7670_status_t;
 
 
 /***************** Adresses ******************/
@@ -79,18 +90,19 @@ typedef enum {
 #define ADDR_WRITE          (0x42)
 #define ADDR_READ           (0x43)
 
-#define I2C_TIMING          (0x2000090E)    // see I2C_InitTypeDef
-#define I2C_TRIALS          (5)             // number of trials before ready test fails
-#define I2C_TIMEOUT         (200)           // ms timeout
+#define I2C_TIMING          (0x2000090E)    // Computed by CubeMX
+#define I2C_TRIALS          (3)             // number of trials before ready test fails
+#define I2C_TIMEOUT         (50)            // ms timeout
+
 
 /****************** Macros *******************/
 
 #define OV7670_PIN_DEF(port, num)   {.PORT = port, .NUM = num}
 #define OV7670_ERROR_CHECK(fct)                                 \
             do {                                                \
-                OV7670_error_t err = fct;                       \
-                if (err != OV7670_NO_ERR) {                     \
-                    return err;                                 \
+                OV7670_status_t st = fct;                       \
+                if (st != OV7670_NO_ERR) {                      \
+                    return st;                                  \
                 }                                               \
             } while (0U);
 #define OV7670_POINTER_CHECK(ptr)                               \
@@ -101,24 +113,44 @@ typedef enum {
             } while (0U);
 
 
-/************* Global variables **************/
-
-/**
- * @brief Driver's I2C communication handle variable
- */
-I2C_HandleTypeDef OV7670_hi2c = {0};
-
-
 /************ Function prototypes ************/
 
 /**
  * @brief Check if the given GPIO port clock is enabled
  * 
  * @param PORT GPIO port (GPIOx)
- * @return NO_ERR if clock enable, else ERR_GPIO_CLOCK_DISABLED
+ * @return Status code
  */
-OV7670_error_t OV7670_check_gpio_clock_en(const GPIO_TypeDef *PORT);
+OV7670_status_t OV7670_check_gpio_clock_en(const GPIO_TypeDef *PORT);
 
+#ifdef OV7670_DEBUG
+/**
+ * @brief Convert a status code to a status message and transmit
+ * it over to UART.
+ * 
+ * @param st Status code to transmit
+ * @param huart Pointer to UART handle
+ * @return Status code
+ */
+OV7670_status_t OV7670_get_status_type(const OV7670_status_t st,
+                                       const UART_HandleTypeDef *huart);
+#endif
+
+/**
+ * @brief Initialize the camera driver.
+ * 
+ * @param PIN Handle to the set of pins used for the camera module
+ * @return Status code
+ */
+OV7670_status_t OV7670_init_camera(const OV7670_pins_t *PIN);
+
+/**
+ * @brief Deinitialize the camera driver, switching off all related
+ * peripherals.
+ * 
+ * @param PIN Handle to the set of pins used for the camera module
+ */
+void OV7670_deinit_camera(const OV7670_pins_t *PIN);
 
 /**
  * @brief I2Cx ISRs

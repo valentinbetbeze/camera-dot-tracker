@@ -3,6 +3,9 @@
  * @author valentin betbeze (valentin.betbeze@gmail.com)
  * @brief Configuration file for the OV7670 driver.
  * @date 2023-08-01
+ * 
+ * @note Update parameters from this configuration header with
+ * to fit with the specifications of your project.
  */
 
 #ifndef __OV7670_CONFIG__
@@ -11,6 +14,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+
+/**
+ * @brief Comment to disable debug mode.
+ * @warning Disabling debug mode will bypass input verifications,
+ * error and exception handling from all functions.
+ */
+#define OV7670_DEBUG        (1U)
 
 
 /**
@@ -23,7 +34,9 @@ extern "C" {
 /* #define OV7670_I2C2         (I2C2) */
 /* #define OV7670_I2C3         (I2C3) */
 
-
+/**
+ * @brief Driver's parameters that the user can modify
+ */
 #define I2C_PRIORITY        2       // Interrupt priority for I2C communication
 
 
