@@ -17,6 +17,7 @@ extern "C" {
 
 #include <stdint.h>
 #include "stm32f3xx_hal.h"
+
 #include "OV7670_config.h"
 
 
@@ -28,11 +29,11 @@ extern "C" {
  */
 typedef struct {
     const GPIO_TypeDef *PORT;   // Pin port (GPIOA, GPIOB, etc.)
-    const uint16_t NUM;         // Pin number (0..15)
+    const uint16_t NUM;         // GPIO_pins (see stm32f3xx_hal_gpio.h)
 } pin_t;
 
 /**
- * @brief STM32 pins allocated for the OV7670 camera module.
+ * @brief STM32 pins used for the OV7670 camera module.
  */
 typedef struct {
     const pin_t PIN_SCL;     // Two-Wire Serial Interface Clock
@@ -53,8 +54,18 @@ typedef struct {
     const pin_t PIN_PWDN;    // Power down
 } OV7670_pins_t;
 
+/**
+ * @brief Types of errors that can be encountered by the driver
+ * @note * Use OV7670_get_error_type() from OV7670_utils.c to get
+ * an error message from the error type. // TODO: write function
+ * @note * Compatible with HAL_StatusTypeDef status
+ */
 typedef enum {
     OV7670_NO_ERR                       = 0,
+    HAL_ERROR,
+    HAL_BUSY,
+    HAL_TIMEOUT,
+    OV7670_NULL_POINTER,
     OV7670_GPIO_INVALID_PORT,
     OV7670_GPIO_INVALID_PROPERTIES,
     OV7670_GPIO_CLOCK_DISABLED,
@@ -64,9 +75,13 @@ typedef enum {
 
 /***************** Adresses ******************/
 
+#define ADDR_BASE           (0x21)
 #define ADDR_WRITE          (0x42)
 #define ADDR_READ           (0x43)
 
+#define I2C_TIMING          (0x2000090E)    // see I2C_InitTypeDef
+#define I2C_TRIALS          (5)             // number of trials before ready test fails
+#define I2C_TIMEOUT         (200)           // ms timeout
 
 /****************** Macros *******************/
 
@@ -74,10 +89,25 @@ typedef enum {
 #define OV7670_ERROR_CHECK(fct)                                 \
             do {                                                \
                 OV7670_error_t err = fct;                       \
-                if (err != HAL_OK) {                            \
-                    return(err);                                \
+                if (err != OV7670_NO_ERR) {                     \
+                    return err;                                 \
                 }                                               \
-            } while(0U);
+            } while (0U);
+#define OV7670_POINTER_CHECK(ptr)                               \
+            do {                                                \
+                if (ptr == NULL) {                              \
+                    return OV7670_NULL_POINTER;                 \
+                }                                               \
+            } while (0U);
+
+
+/************* Global variables **************/
+
+/**
+ * @brief Driver's I2C communication handle variable
+ */
+I2C_HandleTypeDef OV7670_hi2c = {0};
+
 
 /************ Function prototypes ************/
 
@@ -89,6 +119,20 @@ typedef enum {
  */
 OV7670_error_t OV7670_check_gpio_clock_en(const GPIO_TypeDef *PORT);
 
+
+/**
+ * @brief I2Cx ISRs
+ */
+#if defined(OV7670_I2C1)
+void I2C1_EV_IRQHandler(void);
+void I2C1_ER_IRQHandler(void);
+#elif defined(OV7670_I2C2)
+void I2C2_EV_IRQHandler(void);
+void I2C2_ER_IRQHandler(void);
+#elif defined(OV7670_I2C3)
+void I2C3_EV_IRQHandler(void);
+void I2C3_ER_IRQHandler(void);
+#endif
 
 
 #ifdef __cplusplus

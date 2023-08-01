@@ -33,7 +33,7 @@ OV7670_error_t OV7670_check_gpio_clock_en(const GPIO_TypeDef *PORT)
     }
 }
 
-// Just a thought
+// TODO:
 void OV7670_get_error_type(const OV7670_error_t err)
 {
 

@@ -1,7 +1,7 @@
 /**
  * @file OV7670_config.h
  * @author valentin betbeze (valentin.betbeze@gmail.com)
- * @brief Configuration file for the OV7670 driver
+ * @brief Configuration file for the OV7670 driver.
  * @date 2023-08-01
  */
 
