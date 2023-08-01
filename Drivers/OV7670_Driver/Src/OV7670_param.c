@@ -1,3 +1,11 @@
+/**
+ * @file OV7670_it.c
+ * @author valentin betbeze (valentin.betbeze@gmail.com)
+ * @brief Source file grouping all functions used for initializing
+ * the driver and updating its parameters.
+ * @date 2023-08-01 
+ */
+
 #include "OV7670_driver.h"
 
 static I2C_HandleTypeDef OV7670_hi2c = {0};
@@ -40,7 +48,6 @@ static OV7670_error_t OV7670_init_i2c(const pin_t *PIN_SCL,
     HAL_GPIO_Init(PIN_SCL->PORT, &PIN_SCL_INIT);
     HAL_GPIO_Init(PIN_SDA->PORT, &PIN_SDA_INIT);
     // Configure NVIC
-    // TODO: mention priority grouping used in README.md (requirement)
     HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
 #if defined(OV7670_I2C1)
     HAL_NVIC_SetPriority(I2C1_EV_IRQn, , );

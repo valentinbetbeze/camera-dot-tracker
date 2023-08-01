@@ -19,30 +19,8 @@ extern "C" {
 #include "stm32f3xx_hal.h"
 #include "OV7670_config.h"
 
-/**
- * @brief Uncomment the I2C instance that is to be used for communicating
- * with the 0V7670 registers.
- * @warning Only one I2C instance shall be used at a time.
- * @note Default value is I2C1.
- */
-#define OV7670_I2C1         (I2C1)
-/* #define OV7670_I2C2         (I2C2) */
-/* #define OV7670_I2C3         (I2C3) */
 
-#ifndef OV7670_I2C1 || OV7670_I2C2 || OV7670_I2C3
-#error An I2C instance must be chosen
-#endif
-
-
-/****************** Macros ******************/
-
-#define ADDR_WRITE          (0x42)
-#define ADDR_READ           (0x43)
-
-#define OV7670_PIN_DEF(port, num)   {.PORT = port, .NUM = num}
-
-
-/************* Data Structures **************/
+/************** Data Structures **************/
 
 /**
  * @brief Simple structure to characterize a pin.
@@ -81,6 +59,18 @@ typedef enum {
     OV7670_GPIO_INVALID_PROPERTIES,
     OV7670_GPIO_CLOCK_DISABLED,
 } OV7670_error_t;
+
+
+/***************** Adresses ******************/
+
+#define ADDR_WRITE          (0x42)
+#define ADDR_READ           (0x43)
+
+
+/****************** Macros *******************/
+
+#define OV7670_PIN_DEF(port, num)   {.PORT = port, .NUM = num}
+
 
 /************ Function prototypes ************/
 
