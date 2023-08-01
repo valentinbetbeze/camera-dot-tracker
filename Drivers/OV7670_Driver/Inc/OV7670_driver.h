@@ -58,6 +58,7 @@ typedef enum {
     OV7670_GPIO_INVALID_PORT,
     OV7670_GPIO_INVALID_PROPERTIES,
     OV7670_GPIO_CLOCK_DISABLED,
+    OV7670_INT_PRIO_GRP_CONFLICT,
 } OV7670_error_t;
 
 
@@ -70,7 +71,13 @@ typedef enum {
 /****************** Macros *******************/
 
 #define OV7670_PIN_DEF(port, num)   {.PORT = port, .NUM = num}
-
+#define OV7670_ERROR_CHECK(fct)                                 \
+            do {                                                \
+                OV7670_error_t err = fct;                       \
+                if (err != HAL_OK) {                            \
+                    return(err);                                \
+                }                                               \
+            } while(0U);
 
 /************ Function prototypes ************/
 

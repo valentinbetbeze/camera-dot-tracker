@@ -6,3 +6,5 @@
  */
 
 #include "OV7670_driver.h"
+
+// TODO: what about that --> I2C1_EV_IRQHandler / I2C1_ER_IRQHandler
