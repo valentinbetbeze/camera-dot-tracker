@@ -1,52 +1,31 @@
 /**
  * @file OV7670_core.c
  * @author valentin betbeze (valentin.betbeze@gmail.com)
- * @brief Source file for core functions (update/read state, parameters)
+ * @brief Source file for core functions (update/read state)
  * @date 2023-08-01 
  */
 
 #include "OV7670_driver.h"
 
-extern I2C_HandleTypeDef OV7670_hi2c;
-
-// Send command
-static void OV7670_transmit_i2c(void)
+/**
+ * @brief 
+ * 
+ * @param reg 
+ * @param reg_val 
+ */
+static void OV7670_read_register(const uint8_t reg, uint8_t *reg_data)
 {
-
+    HAL_I2C_Mem_Read_IT(&OV7670_hi2c, ADDR_READ, reg, 1, reg_data, 1);
 }
 
-// Receive response
-static void OV7670_receive_i2c(void)
+
+void OV7670_write_parameter(const uint8_t reg, const uint8_t reg_data)
 {
-
-}
-
-// Reset camera
-void OV7670_reset_camera(void)
-{
-
-}
-
-// Put camera to sleep
-void OV7670_sleep_camera(void)
-{
-
-}
-
-// Wake camera from sleep
-void OV7670_wake_camera(void)
-{
-
-}
-
-// Read camera parameter
-void OV7670_read_parameter(void)
-{
-
-}
-
-// Update camera parameter
-void OV7670_update_parameter(void)
-{
-
+    // Get current register value
+    uint8_t cur_reg_data;
+    OV7670_read_register(reg, &cur_reg_data);
+    // Update register's content
+    uint8_t new_reg_data = cur_reg_data | reg_data;
+    // Send new register value
+    HAL_I2C_Mem_Write_IT(&OV7670_hi2c, ADDR_WRITE, reg, 1, &new_reg_data, 1);
 }

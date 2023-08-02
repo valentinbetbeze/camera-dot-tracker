@@ -1,36 +1,44 @@
 #include "OV7670_driver.h"
 
 
-OV7670_status_t OV7670_check_gpio_clock_en(const GPIO_TypeDef *PORT)
+OV7670_status_t OV7670_enable_gpio_clock(const GPIO_TypeDef *port)
 {
-    switch ((int)PORT) {
-        case (int)GPIOA:
-            return (__HAL_RCC_GPIOA_IS_CLK_ENABLED() == SET) ? \
-                    OV7670_NO_ERR : OV7670_GPIO_CLOCK_DISABLED;
-        case (int)GPIOB:
-            return (__HAL_RCC_GPIOB_IS_CLK_ENABLED() == SET) ? \
-                    OV7670_NO_ERR : OV7670_GPIO_CLOCK_DISABLED;
-        case (int)GPIOC:
-            return (__HAL_RCC_GPIOC_IS_CLK_ENABLED() == SET) ? \
-                    OV7670_NO_ERR : OV7670_GPIO_CLOCK_DISABLED;
-        case (int)GPIOD:
-            return (__HAL_RCC_GPIOD_IS_CLK_ENABLED() == SET) ? \
-                    OV7670_NO_ERR : OV7670_GPIO_CLOCK_DISABLED;
-        case (int)GPIOE:
-            return (__HAL_RCC_GPIOE_IS_CLK_ENABLED() == SET) ? \
-                    OV7670_NO_ERR : OV7670_GPIO_CLOCK_DISABLED;
-        case (int)GPIOF:
-            return (__HAL_RCC_GPIOF_IS_CLK_ENABLED() == SET) ? \
-                    OV7670_NO_ERR : OV7670_GPIO_CLOCK_DISABLED;
-        case (int)GPIOG:
-            return (__HAL_RCC_GPIOG_IS_CLK_ENABLED() == SET) ? \
-                    OV7670_NO_ERR : OV7670_GPIO_CLOCK_DISABLED;
-        case (int)GPIOH:
-            return (__HAL_RCC_GPIOH_IS_CLK_ENABLED() == SET) ? \
-                    OV7670_NO_ERR : OV7670_GPIO_CLOCK_DISABLED;
+    switch ((int)port) {
+        case (int)GPIOA: __HAL_RCC_GPIOA_CLK_ENABLE(); break;
+        case (int)GPIOB: __HAL_RCC_GPIOB_CLK_ENABLE(); break;
+        case (int)GPIOC: __HAL_RCC_GPIOC_CLK_ENABLE(); break;
+        case (int)GPIOD: __HAL_RCC_GPIOD_CLK_ENABLE(); break;
+        case (int)GPIOE: __HAL_RCC_GPIOE_CLK_ENABLE(); break;
+        case (int)GPIOF: __HAL_RCC_GPIOF_CLK_ENABLE(); break;
+        case (int)GPIOG: __HAL_RCC_GPIOG_CLK_ENABLE(); break;
+        default:
+            return OV7670_GPIO_INVALID_PORT;
+        
+        return OV7670_NO_ERR;
+    }
+}
+
+OV7670_status_t OV7670_set_AF(const GPIO_TypeDef *port,
+                              GPIO_InitTypeDef *gpio_init)
+{
+#ifdef OV7670_DEBUG
+    OV7670_POINTER_CHECK(port);
+    OV7670_POINTER_CHECK(gpio_init);
+#endif
+#if defined(OV7670_I2C1)
+    gpio_init->Alternate = GPIO_AF4_I2C1;
+#elif defined(OV7670_I2C2)
+    gpio_init->Alternate = GPIO_AF4_I2C2;
+#elif defined(OV7670_I2C3)
+    switch ((int)port) {
+        case (int)GPIOA: gpio_init->Alternate = GPIO_AF3_I2C3; break;
+        case (int)GPIOB: gpio_init->Alternate = GPIO_AF8_I2C3; break;
+        case (int)GPIOC: gpio_init->Alternate = GPIO_AF3_I2C3; break;
         default:
             return OV7670_GPIO_INVALID_PORT;
     }
+#endif
+    return OV7670_NO_ERR;
 }
 
 
