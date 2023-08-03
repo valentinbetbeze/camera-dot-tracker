@@ -7,19 +7,14 @@
 
 #include "OV7670_driver.h"
 
-/**
- * @brief 
- * 
- * @param reg 
- * @param reg_val 
- */
-static void OV7670_read_register(const uint8_t reg, uint8_t *reg_data)
+
+void OV7670_read_register(const uint8_t reg, uint8_t *reg_data)
 {
     HAL_I2C_Mem_Read_IT(&OV7670_hi2c, ADDR_READ, reg, 1, reg_data, 1);
 }
 
 
-void OV7670_write_parameter(const uint8_t reg, const uint8_t reg_data)
+void OV7670_write_register(const uint8_t reg, const uint8_t reg_data)
 {
     // Get current register value
     uint8_t cur_reg_data;

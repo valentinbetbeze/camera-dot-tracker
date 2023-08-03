@@ -43,7 +43,7 @@ extern "C" {
 
 
 
-#ifndef OV7670_I2C1 || OV7670_I2C2 || OV7670_I2C3
+#if (!defined(OV7670_I2C1) && !defined(OV7670_I2C2) && !defined(OV7670_I2C3))
 #error An I2C instance must be chosen
 #endif
 

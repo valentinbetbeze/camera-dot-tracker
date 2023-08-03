@@ -12,6 +12,10 @@
 #define I2C_TRIALS          (3)             // number of trials before ready test fails
 #define I2C_TIMEOUT         (50)            // ms timeout
 
+/**
+ * @brief Driver's I2C communication handle variable
+ */
+I2C_HandleTypeDef OV7670_hi2c;
 
 /**
  * @brief Initialize GPIOs for the scope of the driver
@@ -20,8 +24,7 @@
  * @param PIN_SDA Serial Data GPIO used
  * @return OV7670_status_t error code
  */
-static OV7670_status_t OV7670_init_GPIO(const pin_t *pin_scl,
-                                        const pin_t *pin_sda)
+static OV7670_status_t OV7670_init_GPIO(pin_t *pin_scl, pin_t *pin_sda)
 {
 #ifdef OV7670_DEBUG
     // Check arguments
@@ -34,23 +37,18 @@ static OV7670_status_t OV7670_init_GPIO(const pin_t *pin_scl,
     OV7670_ERROR_CHECK(OV7670_enable_gpio_clock(pin_scl->PORT));
     OV7670_ERROR_CHECK(OV7670_enable_gpio_clock(pin_sda->PORT));
     // Initialize SCL properties
-    const GPIO_InitTypeDef PIN_SCL_INIT = {
+    GPIO_InitTypeDef gpio_hinit = {
         .Pin = pin_scl->NUM,
         .Mode = GPIO_MODE_AF_OD,
         .Pull = GPIO_NOPULL, // SCCB requires floating pin
         .Speed = GPIO_SPEED_FREQ_HIGH,
     };
-    OV7670_ERROR_CHECK(OV7670_set_AF(pin_scl->PORT, &PIN_SCL_INIT));
-    HAL_GPIO_Init(pin_scl->PORT, &PIN_SCL_INIT);
-    // Initialize SDA properties
-    const GPIO_InitTypeDef PIN_SDA_INIT = {
-        .Pin = pin_sda->NUM,
-        .Mode = GPIO_MODE_AF_OD,
-        .Pull = GPIO_NOPULL, // SCCB requires floating pin
-        .Speed = GPIO_SPEED_FREQ_HIGH,
-    };
-    OV7670_ERROR_CHECK(OV7670_set_AF(pin_sda->PORT, &PIN_SDA_INIT));
-    HAL_GPIO_Init(pin_sda->PORT, &PIN_SDA_INIT);
+    OV7670_ERROR_CHECK(OV7670_set_AF(pin_scl->PORT, &gpio_hinit));
+    HAL_GPIO_Init(pin_scl->PORT, &gpio_hinit);
+    // Initialize SDA properties (same Mode/Pull/Speed)
+    gpio_hinit.Pin = pin_sda->NUM;
+    OV7670_ERROR_CHECK(OV7670_set_AF(pin_sda->PORT, &gpio_hinit));
+    HAL_GPIO_Init(pin_sda->PORT, &gpio_hinit);
 
     return OV7670_NO_ERR;
 }
@@ -88,10 +86,11 @@ static OV7670_status_t OV7670_init_interrupts(void)
     HAL_NVIC_SetPriority(I2C3_ER_IRQn, I2C_PRIORITY, 0);
     HAL_NVIC_EnableIRQ(I2C3_ER_IRQn);
 #endif
+    return OV7670_NO_ERR;
 }
 
 
-OV7670_status_t OV7670_init_camera(const OV7670_pins_t *pin)
+OV7670_status_t OV7670_init_camera(OV7670_pins_t *pin)
 {
 #ifdef OV7670_DEBUG
     // Check pointer state for safe dereferencing
@@ -135,7 +134,7 @@ OV7670_status_t OV7670_init_camera(const OV7670_pins_t *pin)
 }
 
 
-void OV7670_deinit_camera(const OV7670_pins_t *pin)
+void OV7670_deinit_camera(OV7670_pins_t *pin)
 {
     // Disable I2C clock & instance
 #if defined(OV7670_I2C1)
@@ -146,8 +145,8 @@ void OV7670_deinit_camera(const OV7670_pins_t *pin)
     __HAL_RCC_I2C3_CLK_DISABLE();
 #endif
     // Disable GPIOs
-    HAL_GPIO_DeInit(&pin->PIN_SCL.PORT, pin->PIN_SCL.NUM);
-    HAL_GPIO_DeInit(&pin->PIN_SDA.PORT, pin->PIN_SDA.NUM);
+    HAL_GPIO_DeInit(pin->PIN_SCL.PORT, pin->PIN_SCL.NUM);
+    HAL_GPIO_DeInit(pin->PIN_SDA.PORT, pin->PIN_SDA.NUM);
     // Disable interrupts
 #if defined(OV7670_I2C1)
     HAL_NVIC_DisableIRQ(I2C1_EV_IRQn);

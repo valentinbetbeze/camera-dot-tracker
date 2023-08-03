@@ -27,10 +27,7 @@ extern "C" {
   * @{
   */
 
-/**
- * @brief Driver's I2C communication handle variable
- */
-I2C_HandleTypeDef OV7670_hi2c = {0};
+extern I2C_HandleTypeDef OV7670_hi2c;
 
 /** @addtogroup OV7670 types
   * @{
@@ -41,7 +38,7 @@ I2C_HandleTypeDef OV7670_hi2c = {0};
  * @note Created for use in higher level structure OV7670_pins_t.
  */
 typedef struct {
-    const GPIO_TypeDef *PORT;   // Pin port (GPIOA, GPIOB, etc.)
+    GPIO_TypeDef *PORT;   // Pin port (GPIOA, GPIOB, etc.)
     const uint16_t NUM;         // GPIO_pins (see stm32f3xx_hal_gpio.h)
 } pin_t;
 
@@ -49,22 +46,22 @@ typedef struct {
  * @brief STM32 pins used for the OV7670 camera module.
  */
 typedef struct {
-    const pin_t PIN_SCL;     // Two-Wire Serial Interface Clock
-    const pin_t PIN_SDA;     // Two-Wire Serial Interface Data I/O
-    const pin_t PIN_VSYNC;   // Active High: Frame Valid; indicates active frame
-    const pin_t PIN_HREF;    // Active High: Line/Data Valid; indicates active pixels
-    const pin_t PIN_PCLK;    // Pixel Clock output from sensor
-    const pin_t PIN_XCLK;    // Master Clock into Sensor
-    const pin_t PIN_D7;      // Pixel Data Output 7 (MSB)
-    const pin_t PIN_D6;      // Pixel Data Output 6
-    const pin_t PIN_D5;      // Pixel Data Output 5
-    const pin_t PIN_D4;      // Pixel Data Output 4
-    const pin_t PIN_D3;      // Pixel Data Output 3
-    const pin_t PIN_D2;      // Pixel Data Output 2
-    const pin_t PIN_D1;      // Pixel Data Output 1
-    const pin_t PIN_D0;      // Pixel Data Output 0
-    const pin_t PIN_RET;     // Reset
-    const pin_t PIN_PWDN;    // Power down
+    pin_t PIN_SCL;     // Two-Wire Serial Interface Clock
+    pin_t PIN_SDA;     // Two-Wire Serial Interface Data I/O
+    pin_t PIN_VSYNC;   // Active High: Frame Valid; indicates active frame
+    pin_t PIN_HREF;    // Active High: Line/Data Valid; indicates active pixels
+    pin_t PIN_PCLK;    // Pixel Clock output from sensor
+    pin_t PIN_XCLK;    // Master Clock into Sensor
+    pin_t PIN_D7;      // Pixel Data Output 7 (MSB)
+    pin_t PIN_D6;      // Pixel Data Output 6
+    pin_t PIN_D5;      // Pixel Data Output 5
+    pin_t PIN_D4;      // Pixel Data Output 4
+    pin_t PIN_D3;      // Pixel Data Output 3
+    pin_t PIN_D2;      // Pixel Data Output 2
+    pin_t PIN_D1;      // Pixel Data Output 1
+    pin_t PIN_D0;      // Pixel Data Output 0
+    pin_t PIN_RET;     // Reset
+    pin_t PIN_PWDN;    // Power down
 } OV7670_pins_t;
 
 /**
@@ -76,9 +73,9 @@ typedef struct {
  */
 typedef enum {
     OV7670_NO_ERR                       = 0,
-    HAL_ERROR,
-    HAL_BUSY,
-    HAL_TIMEOUT,
+    OV7670_HAL_ERROR,                         // For compatibility with HAL status
+    OV7670_HAL_BUSY,                          // For compatibility with HAL status
+    OV7670_HAL_TIMEOUT,                       // For compatibility with HAL status
     OV7670_NULL_POINTER,
     OV7670_GPIO_INVALID_PORT,
     OV7670_GPIO_INVALID_PROPERTIES,
@@ -297,7 +294,7 @@ typedef enum {
 #define OV7670_PIN_DEF(port, num)   {.PORT = port, .NUM = num}
 #define OV7670_ERROR_CHECK(fct)                                 \
             do {                                                \
-                OV7670_status_t st = fct;                       \
+                OV7670_status_t st = (OV7670_status_t)fct;                       \
                 if (st != OV7670_NO_ERR) {                      \
                     return st;                                  \
                 }                                               \
@@ -314,11 +311,11 @@ typedef enum {
   */
 
 
-/* Function prototypes ********************************************************/
 /** @defgroup Function prototypes
   * @{
   */
 
+/* Utility functions **********************************************************/
 /**
  * @brief Enable the given GPIO port clock
  * 
@@ -349,16 +346,17 @@ OV7670_status_t OV7670_set_AF(const GPIO_TypeDef *port,
  * @return Status code
  */
 OV7670_status_t OV7670_get_status_type(const OV7670_status_t st,
-                                       const UART_HandleTypeDef *huart);
+                                       UART_HandleTypeDef *huart);
 #endif
 
+/* Initialization functions ***************************************************/
 /**
  * @brief Initialize the camera driver.
  * 
  * @param pin Handle to the set of pins used for the camera module
  * @return Status code
  */
-OV7670_status_t OV7670_init_camera(const OV7670_pins_t *pin);
+OV7670_status_t OV7670_init_camera(OV7670_pins_t *pin);
 
 /**
  * @brief Deinitialize the camera driver, switching off all related
@@ -366,7 +364,27 @@ OV7670_status_t OV7670_init_camera(const OV7670_pins_t *pin);
  * 
  * @param pin Handle to the set of pins used for the camera module
  */
-void OV7670_deinit_camera(const OV7670_pins_t *pin);
+void OV7670_deinit_camera(OV7670_pins_t *pin);
+
+/* Core functions *************************************************************/
+
+/**
+ * @brief 
+ * 
+ * @param reg 
+ * @param reg_data 
+ */
+void OV7670_read_register(const uint8_t reg, uint8_t *reg_data);
+
+/**
+ * @brief 
+ * 
+ * @param reg 
+ * @param reg_data 
+ */
+void OV7670_write_register(const uint8_t reg, const uint8_t reg_data);
+
+/* Interrupt Service Routines *************************************************/
 
 /**
  * @brief I2Cx ISRs
@@ -385,8 +403,8 @@ void I2C3_ER_IRQHandler(void);
 /**
  * @brief Common command macros
  */
-#define OV7670_RESET_CAMERA()       OV7670_write_parameter(ADDR_COM7, RESET)
-#define OV7670_STANDBY_CAMERA()     OV7670_write_parameter(ADDR_COM2, STANDBY)
+#define OV7670_RESET_CAMERA()       OV7670_write_register(ADDR_COM7, RESET)
+#define OV7670_STANDBY_CAMERA()     OV7670_write_register(ADDR_COM2, STANDBY)
 
 /**
   * @}
