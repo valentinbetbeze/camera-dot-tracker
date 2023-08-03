@@ -369,20 +369,28 @@ void OV7670_deinit_camera(OV7670_pins_t *pin);
 /* Core functions *************************************************************/
 
 /**
- * @brief 
+ * @brief Read the content of a register (1 byte).
  * 
- * @param reg 
- * @param reg_data 
+ * @param reg Register to read
+ * @param reg_data Buffer to store the value of the register
  */
 void OV7670_read_register(const uint8_t reg, uint8_t *reg_data);
 
 /**
- * @brief 
+ * @brief Write a byte onto a given register.
  * 
- * @param reg 
- * @param reg_data 
+ * @param reg Register to update
+ * @param reg_data Value to write
  */
 void OV7670_write_register(const uint8_t reg, const uint8_t reg_data);
+
+/**
+ * @brief Update a register without affecting the already set register's bits.
+ * 
+ * @param reg Register to update
+ * @param reg_data Value to write
+ */
+void OV7670_update_register(const uint8_t reg, const uint8_t reg_data);
 
 /* Interrupt Service Routines *************************************************/
 
