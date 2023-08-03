@@ -382,7 +382,7 @@ void OV7670_read_register(const uint8_t reg, uint8_t *reg_data);
  * @param reg Register to update
  * @param reg_data Value to write
  */
-void OV7670_write_register(const uint8_t reg, const uint8_t reg_data);
+void OV7670_write_register(uint8_t reg, uint8_t reg_data);
 
 /**
  * @brief Update a register without affecting the already set register's bits.
@@ -390,7 +390,7 @@ void OV7670_write_register(const uint8_t reg, const uint8_t reg_data);
  * @param reg Register to update
  * @param reg_data Value to write
  */
-void OV7670_update_register(const uint8_t reg, const uint8_t reg_data);
+void OV7670_update_register(uint8_t reg, uint8_t reg_data);
 
 /* Interrupt Service Routines *************************************************/
 
