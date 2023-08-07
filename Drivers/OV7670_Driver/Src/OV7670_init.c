@@ -9,8 +9,12 @@
 
 
 #define I2C_TIMING          (0x2000090E)    // Computed by CubeMX
-#define I2C_TRIALS          (3)             // number of trials before ready test fails
-#define I2C_TIMEOUT         (50)            // ms timeout
+#define I2C_TRIALS          (5)             // number of trials before ready test fails
+#define I2C_TIMEOUT         (20)            // ms timeout
+
+#define OV7670_CHECK_GPIO(port, num)        (IS_GPIO_AF_INSTANCE(port) &&  \
+                                             IS_GPIO_PIN(num))
+
 
 /**
  * @brief Driver's I2C communication handle variable
@@ -18,55 +22,102 @@
 I2C_HandleTypeDef OV7670_hi2c;
 
 /**
+ * @brief Enable the given GPIO port clock
+ * 
+ * @param port GPIO port (GPIOx)
+ */
+static void OV7670_enable_gpio_clock(const GPIO_TypeDef *port)
+{
+    if (port == GPIOA) __HAL_RCC_GPIOA_CLK_ENABLE();
+    else if (port == GPIOB) __HAL_RCC_GPIOB_CLK_ENABLE();
+    else if (port == GPIOC) __HAL_RCC_GPIOC_CLK_ENABLE();
+    else if (port == GPIOD) __HAL_RCC_GPIOD_CLK_ENABLE();
+    else if (port == GPIOE) __HAL_RCC_GPIOE_CLK_ENABLE();
+    else if (port == GPIOF) __HAL_RCC_GPIOF_CLK_ENABLE();
+    else if (port == GPIOG) __HAL_RCC_GPIOG_CLK_ENABLE();
+    else if (port == GPIOH) __HAL_RCC_GPIOH_CLK_ENABLE();
+#ifdef OV7670_DEBUG
+    else OV7670_LOG_ERROR(OV7670_GPIO_INVALID);
+#endif
+}
+
+/**
+ * @brief Assign the I2Cx alternate function corresponding to the
+ * given GPIO port.
+ * 
+ * @param port GPIO port
+ * @param gpio_init GPIO initialization handle
+ */
+static void OV7670_gpio_set_AF(const GPIO_TypeDef *port,
+                               GPIO_InitTypeDef *gpio_init)
+{
+    OV7670_CHECK_POINTER(port);
+    OV7670_CHECK_POINTER(gpio_init);
+
+#if defined(OV7670_I2C1)
+    gpio_init->Alternate = GPIO_AF4_I2C1;
+#elif defined(OV7670_I2C2)
+    gpio_init->Alternate = GPIO_AF4_I2C2;
+#elif defined(OV7670_I2C3)
+    if (port == GPIOA) gpio_init->Alternate = GPIO_AF3_I2C3;
+    else if (port == GPIOB) gpio_init->Alternate = GPIO_AF8_I2C3;
+    else if (port == GPIOC) gpio_init->Alternate = GPIO_AF3_I2C3;
+#endif
+}
+
+/**
  * @brief Initialize GPIOs for the scope of the driver
  * 
- * @param PIN_SCL Serial Clock GPIO used
- * @param PIN_SDA Serial Data GPIO used
- * @return OV7670_status_t error code
+ * @param pin Handle to the set of pins used for the camera module
  */
-static OV7670_status_t OV7670_init_GPIO(pin_t *pin_scl, pin_t *pin_sda)
+static void OV7670_init_GPIO(OV7670_pins_t *pin)
 {
 #ifdef OV7670_DEBUG
+    OV7670_CHECK_POINTER(pin);
     // Check arguments
-    if (!IS_GPIO_AF_INSTANCE(pin_scl->PORT) || !IS_GPIO_PIN(pin_scl->NUM) ||
-        !IS_GPIO_AF_INSTANCE(pin_sda->PORT) || !IS_GPIO_PIN(pin_sda->NUM)) {
-            return OV7670_GPIO_INVALID_PROPERTIES;
+    if (!OV7670_CHECK_GPIO(pin->PIN_SCL.PORT, pin->PIN_SCL.NUM) ||
+        !OV7670_CHECK_GPIO(pin->PIN_SDA.PORT, pin->PIN_SDA.NUM)) {
+            OV7670_LOG_ERROR(OV7670_GPIO_INVALID);
     }
 #endif
     // Enable GPIO port clocks
-    OV7670_ERROR_CHECK(OV7670_enable_gpio_clock(pin_scl->PORT));
-    OV7670_ERROR_CHECK(OV7670_enable_gpio_clock(pin_sda->PORT));
+    OV7670_enable_gpio_clock(pin->PIN_SCL.PORT);
+    OV7670_enable_gpio_clock(pin->PIN_SDA.PORT);
+    
     // Initialize SCL properties
-    GPIO_InitTypeDef gpio_hinit = {
-        .Pin = pin_scl->NUM,
+    GPIO_InitTypeDef scl_init = {
+        .Pin = pin->PIN_SCL.NUM,
         .Mode = GPIO_MODE_AF_OD,
-        .Pull = GPIO_NOPULL, // SCCB requires floating pin
-        .Speed = GPIO_SPEED_FREQ_HIGH,
+        .Pull = GPIO_PULLUP,
+        .Speed = GPIO_SPEED_FREQ_LOW,
     };
-    OV7670_ERROR_CHECK(OV7670_set_AF(pin_scl->PORT, &gpio_hinit));
-    HAL_GPIO_Init(pin_scl->PORT, &gpio_hinit);
-    // Initialize SDA properties (same Mode/Pull/Speed)
-    gpio_hinit.Pin = pin_sda->NUM;
-    OV7670_ERROR_CHECK(OV7670_set_AF(pin_sda->PORT, &gpio_hinit));
-    HAL_GPIO_Init(pin_sda->PORT, &gpio_hinit);
+    OV7670_gpio_set_AF(pin->PIN_SCL.PORT, &scl_init);
+    HAL_GPIO_Init(pin->PIN_SCL.PORT, &scl_init);
 
-    return OV7670_NO_ERR;
+    // Initialize SDA properties
+    GPIO_InitTypeDef sda_init = {
+        .Pin = pin->PIN_SDA.NUM,
+        .Mode = GPIO_MODE_AF_OD,
+        .Pull = GPIO_NOPULL,
+        .Speed = GPIO_SPEED_FREQ_LOW,
+    };
+    OV7670_gpio_set_AF(pin->PIN_SDA.PORT, &sda_init);
+    HAL_GPIO_Init(pin->PIN_SDA.PORT, &sda_init);
 }
 
 
 /**
  * @brief Initialize the driver's interrupts.
  * 
- * @return OV7670_status_t error code
  * @note The driver requires the NVIC priority grouping of
  * type 4 (NVIC_PRIORITYGROUP_4). The initialization otherwise fails.
  */
-static OV7670_status_t OV7670_init_interrupts(void)
+static void OV7670_init_interrupts(void)
 {
 #ifdef OV7670_DEBUG
     // Check NVIC priority grouping
     if (HAL_NVIC_GetPriorityGrouping() != NVIC_PRIORITYGROUP_4) {
-        return OV7670_INT_PRIO_GRP_CONFLICT;
+        OV7670_LOG_ERROR(OV7670_INT_PRIO_GRP_CONFLICT);
     }
 #endif
     // Enable the I2C interrupt
@@ -86,16 +137,14 @@ static OV7670_status_t OV7670_init_interrupts(void)
     HAL_NVIC_SetPriority(I2C3_ER_IRQn, I2C_PRIORITY, 0);
     HAL_NVIC_EnableIRQ(I2C3_ER_IRQn);
 #endif
-    return OV7670_NO_ERR;
 }
 
 
-OV7670_status_t OV7670_init_camera(OV7670_pins_t *pin)
+void OV7670_init_camera(OV7670_pins_t *pin)
 {
-#ifdef OV7670_DEBUG
     // Check pointer state for safe dereferencing
-    OV7670_POINTER_CHECK(pin);
-#endif
+    OV7670_CHECK_POINTER(pin);
+
     // Enable I2C clock & instance
 #if defined(OV7670_I2C1)
     __HAL_RCC_I2C1_CLK_ENABLE();
@@ -107,10 +156,13 @@ OV7670_status_t OV7670_init_camera(OV7670_pins_t *pin)
     __HAL_RCC_I2C3_CLK_ENABLE();
     OV7670_hi2c.Instance = I2C3;
 #endif
+
     // Configure GPIOs
-    OV7670_ERROR_CHECK(OV7670_init_GPIO(&pin->PIN_SCL, &pin->PIN_SDA));
+    OV7670_init_GPIO(pin);
+
     // Configure NVIC
-    OV7670_ERROR_CHECK(OV7670_init_interrupts());
+    OV7670_init_interrupts();
+
     // Initialize I2C
     OV7670_hi2c.Init.Timing = I2C_TIMING;
     OV7670_hi2c.Init.OwnAddress1 = 0; // Not a slave (address not required)
@@ -118,24 +170,38 @@ OV7670_status_t OV7670_init_camera(OV7670_pins_t *pin)
     OV7670_hi2c.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
     OV7670_hi2c.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
     OV7670_hi2c.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-    OV7670_ERROR_CHECK(HAL_I2C_Init(&OV7670_hi2c));
-    OV7670_ERROR_CHECK(HAL_I2CEx_ConfigAnalogFilter(&OV7670_hi2c,
-                                                    I2C_ANALOGFILTER_ENABLE));
-    OV7670_ERROR_CHECK(HAL_I2CEx_ConfigDigitalFilter(&OV7670_hi2c, 0));
+    OV7670_LOG_ERROR(HAL_I2C_Init(&OV7670_hi2c));
+    OV7670_LOG_ERROR(HAL_I2CEx_ConfigAnalogFilter(&OV7670_hi2c,
+                                                  I2C_ANALOGFILTER_ENABLE));
+    OV7670_LOG_ERROR(HAL_I2CEx_ConfigDigitalFilter(&OV7670_hi2c, 0));
+
     // Check if the target device is ready
-    OV7670_ERROR_CHECK(HAL_I2C_IsDeviceReady(&OV7670_hi2c, (ADDR_DEVICE<<1U),
-                                             I2C_TRIALS, I2C_TIMEOUT));
+    OV7670_LOG_ERROR(HAL_I2C_IsDeviceReady(&OV7670_hi2c, (ADDR_DEVICE<<1),
+                                           I2C_TRIALS, I2C_TIMEOUT));
+
     // Send reset command
     OV7670_RESET_CAMERA();
+
     // Wait 1 ms
     HAL_Delay(1);
-
-    return OV7670_NO_ERR;
 }
 
 
 void OV7670_deinit_camera(OV7670_pins_t *pin)
 {
+    OV7670_CHECK_POINTER(pin);
+    /**
+     * If the Power Down pin is set, use it: more robust and provides lower
+     * standby current. Else use the COM2 register via the SCCB interface.
+     */
+    if (IS_GPIO_ALL_INSTANCE(pin->PIN_PWDN.PORT) &&
+        IS_GPIO_PIN(pin->PIN_PWDN.NUM)) {
+        HAL_GPIO_WritePin(pin->PIN_PWDN.PORT, pin->PIN_PWDN.NUM, GPIO_PIN_SET);
+    }
+    else {
+        OV7670_STANDBY_CAMERA();
+    }
+    
     // Disable I2C clock & instance
 #if defined(OV7670_I2C1)
     __HAL_RCC_I2C1_CLK_DISABLE();
@@ -144,9 +210,11 @@ void OV7670_deinit_camera(OV7670_pins_t *pin)
 #elif defined(OV7670_I2C3)
     __HAL_RCC_I2C3_CLK_DISABLE();
 #endif
+
     // Disable GPIOs
     HAL_GPIO_DeInit(pin->PIN_SCL.PORT, pin->PIN_SCL.NUM);
     HAL_GPIO_DeInit(pin->PIN_SDA.PORT, pin->PIN_SDA.NUM);
+
     // Disable interrupts
 #if defined(OV7670_I2C1)
     HAL_NVIC_DisableIRQ(I2C1_EV_IRQn);
@@ -158,6 +226,5 @@ void OV7670_deinit_camera(OV7670_pins_t *pin)
     HAL_NVIC_DisableIRQ(I2C3_EV_IRQn);
     HAL_NVIC_DisableIRQ(I2C3_ER_IRQn);
 #endif
-    // TODO: Put the camera in standby
 }
 

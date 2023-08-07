@@ -10,12 +10,16 @@
 
 void OV7670_read_register(const uint8_t reg, uint8_t *reg_data)
 {
-    HAL_I2C_Mem_Read_IT(&OV7670_hi2c, ADDR_READ, reg, 1, reg_data, 1);
+    OV7670_CHECK_POINTER(reg_data);
+    OV7670_LOG_ERROR(HAL_I2C_Mem_Read_IT(&OV7670_hi2c, ADDR_READ,
+                                         reg, 1, reg_data, 1));
 }
 
 void OV7670_write_register(uint8_t reg, uint8_t reg_data)
 {
-    HAL_I2C_Mem_Write_IT(&OV7670_hi2c, ADDR_WRITE, reg, 1, &reg_data, 1);
+
+    OV7670_LOG_ERROR(HAL_I2C_Mem_Write_IT(&OV7670_hi2c, ADDR_WRITE,
+                                          reg, 1, &reg_data, 1));
 }
 
 void OV7670_update_register(uint8_t reg, uint8_t reg_data)
@@ -26,5 +30,5 @@ void OV7670_update_register(uint8_t reg, uint8_t reg_data)
     // Update register's content
     uint8_t new_reg_data = cur_reg_data | reg_data;
     // Send new register value
-    HAL_I2C_Mem_Write_IT(&OV7670_hi2c, ADDR_WRITE, reg, 1, &new_reg_data, 1);
+    OV7670_write_register(reg, new_reg_data);
 }

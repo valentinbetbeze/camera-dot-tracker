@@ -30,8 +30,8 @@ extern "C" {
  * @warning Only one I2C instance shall be used at a time.
  * @note Default value is I2C1.
  */
-#define OV7670_I2C1         (I2C1)
-/* #define OV7670_I2C2         (I2C2) */
+/* #define OV7670_I2C1         (I2C1) */
+#define OV7670_I2C2         (I2C2)
 /* #define OV7670_I2C3         (I2C3) */
 
 /**

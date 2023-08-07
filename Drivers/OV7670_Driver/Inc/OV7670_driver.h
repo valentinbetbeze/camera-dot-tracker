@@ -15,9 +15,11 @@
 extern "C" {
 #endif
 
+#include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "stm32f3xx_hal.h"
 #include "OV7670_config.h"
@@ -26,8 +28,6 @@ extern "C" {
 /** @addtogroup OV7670_Driver
   * @{
   */
-
-extern I2C_HandleTypeDef OV7670_hi2c;
 
 /** @addtogroup OV7670 types
   * @{
@@ -65,11 +65,11 @@ typedef struct {
 } OV7670_pins_t;
 
 /**
- * @brief Types of status/erros that can be encountered.
+ * @brief Error types
  * 
- * @note * Use OV7670_read_status() from OV7670_utils.c to retrieve a
- * status from its code.
  * @note * Compatible with HAL_StatusTypeDef status.
+ * @note * Use OV7670_print_error() from OV7670_utils.c to print an
+ * error message via uart from a given error code.
  */
 typedef enum {
     OV7670_NO_ERR                       = 0,
@@ -77,13 +77,11 @@ typedef enum {
     OV7670_HAL_BUSY,                          // For compatibility with HAL status
     OV7670_HAL_TIMEOUT,                       // For compatibility with HAL status
     OV7670_NULL_POINTER,
-    OV7670_GPIO_INVALID_PORT,
-    OV7670_GPIO_INVALID_PROPERTIES,
+    OV7670_GPIO_INVALID,
     OV7670_GPIO_CLOCK_DISABLED,
     OV7670_INT_PRIO_GRP_CONFLICT,
     OV7670_UART_ERROR,
-} OV7670_status_t;
-
+} OV7670_error_t;
 /**
   * @}
   */
@@ -281,31 +279,46 @@ typedef enum {
 */
 #define RESET                   (1U<<7)     // Reset setting
 #define STANDBY                 (1U<<4)     // Standby mode setting
-
 /**
   * @}
   */
 
+/* Globals ********************************************************************/
+/** @defgroup Utility macros
+  * @{
+  */
+extern I2C_HandleTypeDef OV7670_hi2c;
+extern OV7670_error_t OV7670_err;
+extern void assert_failed(uint8_t* file, uint32_t line);
+/**
+  * @}
+  */
 
 /* Utility macros *************************************************************/
 /** @defgroup Utility macros
   * @{
   */
 #define OV7670_PIN_DEF(port, num)   {.PORT = port, .NUM = num}
-#define OV7670_ERROR_CHECK(fct)                                 \
-            do {                                                \
-                OV7670_status_t st = (OV7670_status_t)fct;                       \
-                if (st != OV7670_NO_ERR) {                      \
-                    return st;                                  \
-                }                                               \
-            } while (0U);
-#define OV7670_POINTER_CHECK(ptr)                               \
-            do {                                                \
-                if (ptr == NULL) {                              \
-                    return OV7670_NULL_POINTER;                 \
-                }                                               \
-            } while (0U);
 
+#ifdef OV7670_DEBUG 
+#define OV7670_CHECK_POINTER(ptr)                                   \
+            do {                                                    \
+                if (ptr == NULL) {                                  \
+                    OV7670_err = OV7670_NULL_POINTER;               \
+                    assert_failed((uint8_t *)__FILE__, __LINE__);   \
+                }                                                   \
+            } while (0U)
+#define OV7670_LOG_ERROR(fct)                                       \
+            do {                                                    \
+                OV7670_err = (OV7670_error_t)fct;                   \
+                if (OV7670_err != OV7670_NO_ERR) {                  \
+                    assert_failed((uint8_t *)__FILE__, __LINE__);   \
+                }                                                   \
+            } while (0U)
+#else                                     
+#define OV7670_POINTER_CHECK(ptr)   do {} while (0)
+#define OV7670_LOG_ERROR(fct)       fct
+#endif
 /**
   * @}
   */
@@ -316,37 +329,15 @@ typedef enum {
   */
 
 /* Utility functions **********************************************************/
-/**
- * @brief Enable the given GPIO port clock
- * 
- * @param port GPIO port (GPIOx)
- * @return Status code
- */
-OV7670_status_t OV7670_enable_gpio_clock(const GPIO_TypeDef *port);
-
-/**
- * @brief Assign the I2Cx alternate function corresponding to the
- * given GPIO port.
- * 
- * @param port GPIO port
- * @param gpio_init GPIO initialization handle
- * @return Error code if the GPIO port does not correspond to any
- * I2C alternate function. 
- */
-OV7670_status_t OV7670_set_AF(const GPIO_TypeDef *port,
-                              GPIO_InitTypeDef *gpio_init);
 
 #ifdef OV7670_DEBUG
 /**
  * @brief Convert a status code to a status message and transmit
  * it over to UART.
  * 
- * @param st Status code to transmit
  * @param huart Pointer to UART handle
- * @return Status code
  */
-OV7670_status_t OV7670_get_status_type(const OV7670_status_t st,
-                                       UART_HandleTypeDef *huart);
+void OV7670_print_error(UART_HandleTypeDef *huart);
 #endif
 
 /* Initialization functions ***************************************************/
@@ -354,9 +345,8 @@ OV7670_status_t OV7670_get_status_type(const OV7670_status_t st,
  * @brief Initialize the camera driver.
  * 
  * @param pin Handle to the set of pins used for the camera module
- * @return Status code
  */
-OV7670_status_t OV7670_init_camera(OV7670_pins_t *pin);
+void OV7670_init_camera(OV7670_pins_t *pin);
 
 /**
  * @brief Deinitialize the camera driver, switching off all related
@@ -413,11 +403,9 @@ void I2C3_ER_IRQHandler(void);
  */
 #define OV7670_RESET_CAMERA()       OV7670_write_register(ADDR_COM7, RESET)
 #define OV7670_STANDBY_CAMERA()     OV7670_write_register(ADDR_COM2, STANDBY)
-
 /**
   * @}
   */
-
 
 /**
   * @}
