@@ -51,7 +51,6 @@ typedef struct {
     pin_t PIN_VSYNC;   // Active High: Frame Valid; indicates active frame
     pin_t PIN_HREF;    // Active High: Line/Data Valid; indicates active pixels
     pin_t PIN_PCLK;    // Pixel Clock output from sensor
-    pin_t PIN_XCLK;    // Master Clock into Sensor
     pin_t PIN_D7;      // Pixel Data Output 7 (MSB)
     pin_t PIN_D6;      // Pixel Data Output 6
     pin_t PIN_D5;      // Pixel Data Output 5
@@ -289,6 +288,8 @@ typedef enum {
   */
 extern I2C_HandleTypeDef OV7670_hi2c;
 extern OV7670_error_t OV7670_err;
+extern uint8_t rdata;
+
 extern void assert_failed(uint8_t* file, uint32_t line);
 /**
   * @}
@@ -345,6 +346,8 @@ void OV7670_print_error(UART_HandleTypeDef *huart);
  * @brief Initialize the camera driver.
  * 
  * @param pin Handle to the set of pins used for the camera module
+ * 
+ * @note The driver requires PLLCKL at 72 MHz or less.
  */
 void OV7670_init_camera(OV7670_pins_t *pin);
 
@@ -359,28 +362,20 @@ void OV7670_deinit_camera(OV7670_pins_t *pin);
 /* Core functions *************************************************************/
 
 /**
- * @brief Read the content of a register (1 byte).
- * 
- * @param reg Register to read
- * @param reg_data Buffer to store the value of the register
- */
-void OV7670_read_register(const uint8_t reg, uint8_t *reg_data);
-
-/**
  * @brief Write a byte onto a given register.
  * 
  * @param reg Register to update
- * @param reg_data Value to write
+ * @param data Value to write
  */
-void OV7670_write_register(uint8_t reg, uint8_t reg_data);
+void OV7670_write_register(uint8_t reg, uint8_t data);
 
 /**
  * @brief Update a register without affecting the already set register's bits.
  * 
  * @param reg Register to update
- * @param reg_data Value to write
+ * @param data Value to write
  */
-void OV7670_update_register(uint8_t reg, uint8_t reg_data);
+void OV7670_update_register(uint8_t reg, uint8_t data);
 
 /* Interrupt Service Routines *************************************************/
 
@@ -401,7 +396,11 @@ void I2C3_ER_IRQHandler(void);
 /**
  * @brief Common command macros
  */
-#define OV7670_RESET_CAMERA()       OV7670_write_register(ADDR_COM7, RESET)
+#define OV7670_RESET_CAMERA()                                                   \
+                                do {                                            \
+                                    OV7670_write_register(ADDR_COM7, RESET);    \
+                                    HAL_Delay(2);                               \
+                                } while (0U)
 #define OV7670_STANDBY_CAMERA()     OV7670_write_register(ADDR_COM2, STANDBY)
 /**
   * @}

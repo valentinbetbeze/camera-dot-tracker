@@ -40,11 +40,8 @@ void OV7670_print_error(UART_HandleTypeDef *huart)
         case OV7670_NULL_POINTER:
             strcpy(message, "OV7670_NULL_POINTER\n");
             break;
-        case OV7670_GPIO_INVALID_PORT:
-            strcpy(message, "OV7670_GPIO_INVALID_PORT\n");
-            break;
-        case OV7670_GPIO_INVALID_PROPERTIES:
-            strcpy(message, "OV7670_GPIO_INVALID_PROPERTIES\n");
+        case OV7670_GPIO_INVALID:
+            strcpy(message, "OV7670_GPIO_INVALID\n");
             break;
         case OV7670_GPIO_CLOCK_DISABLED:
             strcpy(message, "OV7670_GPIO_CLOCK_DISABLED\n");

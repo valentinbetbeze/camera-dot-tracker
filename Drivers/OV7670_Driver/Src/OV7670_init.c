@@ -9,8 +9,8 @@
 
 
 #define I2C_TIMING          (0x2000090E)    // Computed by CubeMX
-#define I2C_TRIALS          (5)             // number of trials before ready test fails
-#define I2C_TIMEOUT         (20)            // ms timeout
+#define I2C_TRIALS          (3)             // number of trials before ready test fails
+#define I2C_TIMEOUT         (25)            // ms timeout
 
 #define OV7670_CHECK_GPIO(port, num)        (IS_GPIO_AF_INSTANCE(port) &&  \
                                              IS_GPIO_PIN(num))
@@ -103,6 +103,9 @@ static void OV7670_init_GPIO(OV7670_pins_t *pin)
     };
     OV7670_gpio_set_AF(pin->PIN_SDA.PORT, &sda_init);
     HAL_GPIO_Init(pin->PIN_SDA.PORT, &sda_init);
+
+    // Initialize Master Clock Output (MCO) for XCLK
+    HAL_RCC_MCOConfig(RCC_MCO, RCC_MCO1SOURCE_PLLCLK, RCC_MCODIV_1);
 }
 
 
@@ -174,7 +177,7 @@ void OV7670_init_camera(OV7670_pins_t *pin)
     OV7670_LOG_ERROR(HAL_I2CEx_ConfigAnalogFilter(&OV7670_hi2c,
                                                   I2C_ANALOGFILTER_ENABLE));
     OV7670_LOG_ERROR(HAL_I2CEx_ConfigDigitalFilter(&OV7670_hi2c, 0));
-
+    
     // Check if the target device is ready
     OV7670_LOG_ERROR(HAL_I2C_IsDeviceReady(&OV7670_hi2c, (ADDR_DEVICE<<1),
                                            I2C_TRIALS, I2C_TIMEOUT));
@@ -182,8 +185,12 @@ void OV7670_init_camera(OV7670_pins_t *pin)
     // Send reset command
     OV7670_RESET_CAMERA();
 
-    // Wait 1 ms
-    HAL_Delay(1);
+    /**
+     * Wait 2 ms.
+     * OmniVision says 1 ms is enough, but I've had failures with only 1 ms.
+     * Using 2 ms seems to be more reliable.
+     */
+    HAL_Delay(2);
 }
 
 
