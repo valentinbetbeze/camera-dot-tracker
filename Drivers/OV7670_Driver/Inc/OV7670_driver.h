@@ -80,6 +80,8 @@ typedef enum {
     OV7670_GPIO_CLOCK_DISABLED,
     OV7670_INT_PRIO_GRP_CONFLICT,
     OV7670_UART_ERROR,
+    OV7670_PLL_MODIF_FORBIDDEN,
+    OV7670_PLL_INVALID_FREQ,
 } OV7670_error_t;
 /**
   * @}
@@ -278,17 +280,17 @@ typedef enum {
 */
 #define RESET                   (1U<<7)     // Reset setting
 #define STANDBY                 (1U<<4)     // Standby mode setting
+#define CCIR656                 (1U<<6)     // CCIR656 format
 /**
   * @}
   */
 
 /* Globals ********************************************************************/
-/** @defgroup Utility macros
+/** @defgroup Global variables / functions
   * @{
   */
 extern I2C_HandleTypeDef OV7670_hi2c;
 extern OV7670_error_t OV7670_err;
-extern uint8_t rdata;
 
 extern void assert_failed(uint8_t* file, uint32_t line);
 /**
@@ -362,6 +364,16 @@ void OV7670_deinit_camera(OV7670_pins_t *pin);
 /* Core functions *************************************************************/
 
 /**
+ * @brief Read the content of a register (1 byte).
+ * 
+ * @param reg Register to read
+ * @param data Buffer to store the value of the register
+ * 
+ * @note Read operation uses I2C in polling mode.
+ */
+void OV7670_read_register(uint8_t reg, uint8_t *data);
+
+/**
  * @brief Write a byte onto a given register.
  * 
  * @param reg Register to update
@@ -374,8 +386,9 @@ void OV7670_write_register(uint8_t reg, uint8_t data);
  * 
  * @param reg Register to update
  * @param data Value to write
+ * @param en 1 to add the bits, 0 to remove them from the register
  */
-void OV7670_update_register(uint8_t reg, uint8_t data);
+void OV7670_update_register(uint8_t reg, uint8_t data, uint8_t set);
 
 /* Interrupt Service Routines *************************************************/
 
@@ -395,13 +408,30 @@ void I2C3_ER_IRQHandler(void);
 
 /**
  * @brief Common command macros
+ * 
+ * @note I'm creating those macros as I develop and use the driver. Hence, some
+ * commands may be missing. Feel free to look at the register map in the OV7670
+ * datasheet to find the right register and shift to apply for a given command.
  */
-#define OV7670_RESET_CAMERA()                                                   \
-                                do {                                            \
-                                    OV7670_write_register(ADDR_COM7, RESET);    \
-                                    HAL_Delay(2);                               \
-                                } while (0U)
+
+/**
+ * @brief Reset the camera module via SCCB
+ * @note Another way to reset the module is to use the RST pin.
+ */
+#define OV7670_RESET_CAMERA()                                                      \
+                                    do {                                           \
+                                        OV7670_write_register(ADDR_COM7, RESET);   \
+                                        HAL_Delay(1);                              \
+                                    } while (0U)
 #define OV7670_STANDBY_CAMERA()     OV7670_write_register(ADDR_COM2, STANDBY)
+#define OV7670_SET_GAIN(byte)       OV7670_write_register(ADDR_GAIN, byte)
+#define OV7670_SET_BLUE_GAIN(byte)  OV7670_write_register(ADDR_BLUE, byte)
+#define OV7670_SET_RED_GAIN(byte)   OV7670_write_register(ADDR_RED, byte)
+
+#define OV7670_ENABLE_CCIR656()     OV7670_update_register(ADDR_COM1, CCIR656, 1);
+#define OV7670_DISABLE_CCIR656()    OV7670_update_register(ADDR_COM1, CCIR656, 0);
+
+
 /**
   * @}
   */

@@ -9,15 +9,8 @@
 
 #define I2C_TIMEOUT         (25)
 
-/**
- * @brief Read the content of a register (1 byte).
- * 
- * @param reg Register to read
- * @param data Buffer to store the value of the register
- * 
- * @note Read operation uses I2C in polling mode.
- */
-static void OV7670_read_register(uint8_t reg, uint8_t *data)
+
+void OV7670_read_register(uint8_t reg, uint8_t *data)
 {
     OV7670_CHECK_POINTER(data);
     OV7670_LOG_ERROR(HAL_I2C_Master_Transmit(&OV7670_hi2c, ADDR_WRITE,
@@ -28,17 +21,17 @@ static void OV7670_read_register(uint8_t reg, uint8_t *data)
 
 void OV7670_write_register(uint8_t reg, uint8_t data)
 {
-    OV7670_LOG_ERROR(HAL_I2C_Mem_Write_IT(&OV7670_hi2c, ADDR_WRITE,
-                                          reg, 1, &data, 1));
+    OV7670_LOG_ERROR(HAL_I2C_Mem_Write(&OV7670_hi2c, ADDR_WRITE,
+                                       reg, 1, &data, 1, I2C_TIMEOUT));
 }
 
-void OV7670_update_register(uint8_t reg, uint8_t data)
+void OV7670_update_register(uint8_t reg, uint8_t data, uint8_t set)
 {
     // Get current register value
-    uint8_t reg_data = 0;
-    OV7670_read_register(reg, &reg_data);
+    uint8_t regdata = 0;
+    OV7670_read_register(reg, &regdata);
     // Update register's content
-    reg_data |= data;
+    regdata = (set) ? regdata | data : regdata & ~data;
     // Send new register value
-    OV7670_write_register(reg, reg_data);
+    OV7670_write_register(reg, regdata);
 }

@@ -9,8 +9,10 @@
 
 
 #define I2C_TIMING          (0x2000090E)    // Computed by CubeMX
-#define I2C_TRIALS          (3)             // number of trials before ready test fails
+#define I2C_TRIALS          (3)             // Number of trials before ready test fails
 #define I2C_TIMEOUT         (25)            // ms timeout
+
+#define PLL_TARGET_FREQ     (24000000)      // MCO frequency in Hz
 
 #define OV7670_CHECK_GPIO(port, num)        (IS_GPIO_AF_INSTANCE(port) &&  \
                                              IS_GPIO_PIN(num))
@@ -20,6 +22,7 @@
  * @brief Driver's I2C communication handle variable
  */
 I2C_HandleTypeDef OV7670_hi2c;
+
 
 /**
  * @brief Enable the given GPIO port clock
@@ -40,6 +43,7 @@ static void OV7670_enable_gpio_clock(const GPIO_TypeDef *port)
     else OV7670_LOG_ERROR(OV7670_GPIO_INVALID);
 #endif
 }
+
 
 /**
  * @brief Assign the I2Cx alternate function corresponding to the
@@ -64,6 +68,7 @@ static void OV7670_gpio_set_AF(const GPIO_TypeDef *port,
     else if (port == GPIOC) gpio_init->Alternate = GPIO_AF3_I2C3;
 #endif
 }
+
 
 /**
  * @brief Initialize GPIOs for the scope of the driver
@@ -103,8 +108,33 @@ static void OV7670_init_GPIO(OV7670_pins_t *pin)
     };
     OV7670_gpio_set_AF(pin->PIN_SDA.PORT, &sda_init);
     HAL_GPIO_Init(pin->PIN_SDA.PORT, &sda_init);
+}
 
-    // Initialize Master Clock Output (MCO) for XCLK
+
+/**
+ * @brief Configure Master Clock Output.
+ */
+static void OV7670_config_MCO(void)
+{
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    HAL_RCC_GetOscConfig(&RCC_OscInitStruct);
+
+    if (RCC_OscInitStruct.PLL.PLLState != RCC_PLL_ON) {
+
+        __HAL_RCC_PLL_DISABLE();
+
+        RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+        RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+        RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+        RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+        RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
+        // 24 MHz advised, yet down to 8 MHz seems to be working
+        RCC_OscInitStruct.PLL.PLLMUL = RCC_CFGR_PLLMUL3;
+
+        __HAL_RCC_PLL_ENABLE();
+
+        OV7670_LOG_ERROR(HAL_RCC_OscConfig(&RCC_OscInitStruct));
+    }
     HAL_RCC_MCOConfig(RCC_MCO, RCC_MCO1SOURCE_PLLCLK, RCC_MCODIV_1);
 }
 
@@ -147,7 +177,6 @@ void OV7670_init_camera(OV7670_pins_t *pin)
 {
     // Check pointer state for safe dereferencing
     OV7670_CHECK_POINTER(pin);
-
     // Enable I2C clock & instance
 #if defined(OV7670_I2C1)
     __HAL_RCC_I2C1_CLK_ENABLE();
@@ -159,12 +188,12 @@ void OV7670_init_camera(OV7670_pins_t *pin)
     __HAL_RCC_I2C3_CLK_ENABLE();
     OV7670_hi2c.Instance = I2C3;
 #endif
-
     // Configure GPIOs
     OV7670_init_GPIO(pin);
-
-    // Configure NVIC
-    OV7670_init_interrupts();
+    // Initialize Master Clock Output (MCO) for XCLK.
+    OV7670_config_MCO();
+    // Configure NVIC (unused in this version)
+    /* OV7670_init_interrupts(); */
 
     // Initialize I2C
     OV7670_hi2c.Init.Timing = I2C_TIMING;
@@ -181,16 +210,8 @@ void OV7670_init_camera(OV7670_pins_t *pin)
     // Check if the target device is ready
     OV7670_LOG_ERROR(HAL_I2C_IsDeviceReady(&OV7670_hi2c, (ADDR_DEVICE<<1),
                                            I2C_TRIALS, I2C_TIMEOUT));
-
     // Send reset command
     OV7670_RESET_CAMERA();
-
-    /**
-     * Wait 2 ms.
-     * OmniVision says 1 ms is enough, but I've had failures with only 1 ms.
-     * Using 2 ms seems to be more reliable.
-     */
-    HAL_Delay(2);
 }
 
 
