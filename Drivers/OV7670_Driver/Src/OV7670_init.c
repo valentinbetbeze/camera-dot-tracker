@@ -5,7 +5,10 @@
  * @date 2023-08-01 
  */
 
-#include "OV7670_driver.h"
+#include "OV7670_init.h"
+#include "OV7670_SCCB_comm.h"
+#include "OV7670_register_control.h"
+#include "OV7670_debug.h"
 
 
 #define I2C_TIMING          (0x2000090E)    // Computed by CubeMX
@@ -17,11 +20,6 @@
 #define OV7670_CHECK_GPIO(port, num)        (IS_GPIO_AF_INSTANCE(port) &&  \
                                              IS_GPIO_PIN(num))
 
-
-/**
- * @brief Driver's I2C communication handle variable
- */
-I2C_HandleTypeDef OV7670_hi2c;
 
 
 /**
@@ -126,9 +124,9 @@ static void OV7670_config_MCO(void)
         RCC_OscInitStruct.HSIState = RCC_HSI_ON;
         RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
         RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+        // Min: 10 MHz; Nominal: 24 MHz; Max: 48 MHz
         RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
         RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
-        // 24 MHz advised, yet down to 8 MHz seems to be working
         RCC_OscInitStruct.PLL.PLLMUL = RCC_CFGR_PLLMUL3;
 
         __HAL_RCC_PLL_ENABLE();
@@ -211,7 +209,9 @@ void OV7670_init_camera(OV7670_pins_t *pin)
     OV7670_LOG_ERROR(HAL_I2C_IsDeviceReady(&OV7670_hi2c, (ADDR_DEVICE<<1),
                                            I2C_TRIALS, I2C_TIMEOUT));
     // Send reset command
-    OV7670_RESET_CAMERA();
+    OV7670_reset_camera();
+
+    // TODO: any other commands (format, etc)
 }
 
 
@@ -227,7 +227,7 @@ void OV7670_deinit_camera(OV7670_pins_t *pin)
         HAL_GPIO_WritePin(pin->PIN_PWDN.PORT, pin->PIN_PWDN.NUM, GPIO_PIN_SET);
     }
     else {
-        OV7670_STANDBY_CAMERA();
+        OV7670_sleep_camera();
     }
     
     // Disable I2C clock & instance

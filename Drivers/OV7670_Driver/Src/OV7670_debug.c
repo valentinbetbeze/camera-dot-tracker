@@ -5,7 +5,8 @@
  * @date 2023-08-02 
  */
 
-#include "OV7670_driver.h"
+#include "OV7670_debug.h"
+
 
 #define DEBUG_MSG_SIZE      40
 

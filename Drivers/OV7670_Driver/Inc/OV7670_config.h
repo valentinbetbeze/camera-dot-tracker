@@ -15,6 +15,12 @@
 extern "C" {
 #endif
 
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#include "stm32f3xx_hal.h"
+
 
 /**
  * @brief Comment to disable debug mode.
@@ -38,8 +44,6 @@ extern "C" {
  * @brief Driver's parameters that the user can modify
  */
 #define I2C_PRIORITY        2       // Interrupt priority for I2C communication
-
-
 
 
 

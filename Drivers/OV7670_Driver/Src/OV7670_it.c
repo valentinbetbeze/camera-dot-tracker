@@ -5,8 +5,8 @@
  * @date 2023-08-01 
  */
 
-#include "OV7670_driver.h"
-
+#include "OV7670_init.h"
+#include "OV7670_SCCB_comm.h"
 
 /**
  * @brief This function handles I2C1 event global interrupt /
