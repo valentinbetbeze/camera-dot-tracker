@@ -55,30 +55,54 @@
 
 /* USER CODE END ExternalFunctions */
 
-/* USER CODE BEGIN 0 */
-
-/* USER CODE END 0 */
 /**
   * Initializes the Global MSP.
   */
 void HAL_MspInit(void)
 {
-  /* USER CODE BEGIN MspInit 0 */
+    __HAL_RCC_SYSCFG_CLK_ENABLE();
+    __HAL_RCC_PWR_CLK_ENABLE();
 
-  /* USER CODE END MspInit 0 */
+    // Init LED2 (user led) GPIO
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    GPIO_InitTypeDef gpio_init = {
+        .Pin = LED2_PIN,
+        .Mode = GPIO_MODE_OUTPUT_PP,
+        .Pull = GPIO_NOPULL,
+        .Speed = GPIO_SPEED_FREQ_HIGH
+    };
+    HAL_GPIO_Init(LED2_PORT, &gpio_init);
 
-  __HAL_RCC_SYSCFG_CLK_ENABLE();
-  __HAL_RCC_PWR_CLK_ENABLE();
+    /* System interrupt init*/
 
-  HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_0);
-
-  /* System interrupt init*/
-
-  /* USER CODE BEGIN MspInit 1 */
-
-  /* USER CODE END MspInit 1 */
 }
 
-/* USER CODE BEGIN 1 */
+/**
+ * @brief Initialize all hardware related to USART2
+ * 
+ * @param huart Pointer to USART handle
+ */
+void HAL_UART_MspInit(UART_HandleTypeDef *huart)
+{
+    if(huart->Instance == USART2) {
+        // Enable USART2 clock
+        __HAL_RCC_USART2_CLK_ENABLE();
 
-/* USER CODE END 1 */
+        // Enable GPIOA clock
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+
+        // Initialize GPIOs
+        GPIO_InitTypeDef gpio_init = {
+            .Pin = USART2_PIN_TX | USART2_PIN_RX,
+            .Mode = GPIO_MODE_AF_PP,
+            .Pull = GPIO_PULLUP,
+            .Speed = GPIO_SPEED_FREQ_LOW,
+            .Alternate = GPIO_AF7_USART2
+        };
+        HAL_GPIO_Init(USART2_PORT_RX_TX, &gpio_init);
+
+        // Initialize UART interrupt
+        HAL_NVIC_SetPriority(USART2_IRQn, 1, 0);
+        HAL_NVIC_EnableIRQ(USART2_IRQn);
+    }
+}
