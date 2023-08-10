@@ -1,0 +1,5 @@
+{
+    "cortex-debug.gdbPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/12.2 mpacbti-rel1/bin/arm-none-eabi-gdb.exe",
+    "cortex-debug.stutilPath": "C:/Program Files/stlink-1.7.0-x86_64-w64-mingw32/bin/st-util.exe",
+    "cortex-debug.variableUseNaturalFormat": false
+}
