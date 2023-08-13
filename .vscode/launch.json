@@ -1,0 +1,35 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "launch stlink",
+            "cwd": "${workspaceRoot}",
+            "executable": "${workspaceRoot}/build/camera-dot-tracker.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "showDevDebugOutput": "raw",
+            "servertype": "stutil",
+            "device": "STM32F303RE",
+            "interface": "swd",
+            "runToEntryPoint": "main",
+            "preLaunchCommands": ["make"],
+            "swoConfig":{
+                "enabled":true,
+                "source":"probe",
+                "swoFrequency": 4000000,
+                "cpuFrequency":8000000,
+                "decoders": [
+                    {
+                        "port": 0,
+                        "type": "console",
+                        "label": "SWO output",
+                        "encoding":"ascii"
+                    }
+                ]
+            }
+        }
+    ]
+}
