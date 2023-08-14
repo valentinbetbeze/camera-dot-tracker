@@ -27,6 +27,7 @@ extern I2C_HandleTypeDef OV7670_hi2c;
 
 /* Data Structures ************************************************************/
 
+#define OV7670_PIN_DEF(port, num)   {.PORT = port, .NUM = num}
 /**
  * @brief Simple structure to characterize a pin.
  * @note Created for use in higher level structure OV7670_pins_t.

@@ -45,7 +45,6 @@ extern void assert_failed(uint8_t* file, uint32_t line);
 
 /* Macros *********************************************************************/
 
-#define OV7670_PIN_DEF(port, num)   {.PORT = port, .NUM = num}
 #ifdef OV7670_DEBUG 
 #define OV7670_CHECK_POINTER(ptr)                                                           \
                                     do {                                                    \
