@@ -69,7 +69,7 @@ extern void assert_failed(uint8_t* file, uint32_t line);
 
 /* Function prototypes ********************************************************/
 
-#ifdef OV7670_DEBUG
+#if (defined(OV7670_DEBUG) && defined(HAL_UART_MODULE_ENABLED))
 /**
  * @brief Convert a status code to a status message and transmit
  * it over to UART.

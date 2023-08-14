@@ -16,7 +16,7 @@
 OV7670_error_t OV7670_err;
 
 
-#ifdef OV7670_DEBUG
+#if (defined(OV7670_DEBUG) && defined(HAL_UART_MODULE_ENABLED))
 void OV7670_print_error(UART_HandleTypeDef *huart)
 {
     // Check if UART is ready

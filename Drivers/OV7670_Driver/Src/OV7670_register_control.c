@@ -6,7 +6,7 @@
  */
 
 #include "OV7670_register_control.h"
-#include "OV7670_SCCB_comm.h"
+#include "OV7670_core.h"
 #include "OV7670_debug.h"
 
 /**

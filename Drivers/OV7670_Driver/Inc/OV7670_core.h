@@ -1,7 +1,8 @@
 /**
  * @file OV7670_init.h
  * @author valentin betbeze (valentin.betbeze@gmail.com)
- * @brief Header file for initialization features.
+ * @brief Header file for core features: register communication (SCCB)
+ * & driver initialization.
  * @date 2023-07-30
  */
 
@@ -14,6 +15,15 @@ extern "C" {
 
 #include "OV7670_config.h"
 
+
+extern I2C_HandleTypeDef OV7670_hi2c;
+
+/**
+ * @brief OV7670 Camera module base adresses.
+ */
+#define ADDR_DEVICE             (0x21)
+#define ADDR_WRITE              ((ADDR_DEVICE<<1) | 0x00U)
+#define ADDR_READ               ((ADDR_DEVICE<<1) | 0x01U)
 
 /* Data Structures ************************************************************/
 
@@ -49,6 +59,24 @@ typedef struct {
 
 
 /* Function prototypes ********************************************************/
+
+/**
+ * @brief Read the content of a register (1 byte).
+ * 
+ * @param reg Register to read
+ * @param data Buffer to store the value of the register
+ * 
+ * @note Read operation uses I2C in polling mode.
+ */
+void OV7670_read_register(uint8_t reg, uint8_t *data);
+
+/**
+ * @brief Write a byte onto a given register.
+ * 
+ * @param reg Register to update
+ * @param data Value to write
+ */
+void OV7670_write_register(uint8_t reg, uint8_t data);
 
 /**
  * @brief Initialize the camera driver.

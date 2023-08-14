@@ -7,7 +7,8 @@
  */
 
 #include "main.h"
-#include "OV7670_driver.h"
+#include "OV7670_core.h"
+#include "OV7670_register_control.h"
 
 
 /* Global variables ----------------------------------------------------------*/
