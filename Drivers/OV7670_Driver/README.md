@@ -7,3 +7,5 @@ Use PLLCLK to provide the module with a clock. Mention what can happen, what to 
 
 Compatible with STM32F3xx family only.
 Tested on STM32F303RE
+
+Driver takes care of gpio initialization (gpio related to the driver, in the data structure)
