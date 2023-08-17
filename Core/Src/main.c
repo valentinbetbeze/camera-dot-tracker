@@ -9,6 +9,9 @@
 #include "main.h"
 #include "OV7670_core.h"
 #include "OV7670_register_control.h"
+#include "OV7670_debug.h"
+#include "st7735s_hal.h"
+
 
 
 /* Global variables ----------------------------------------------------------*/
@@ -16,6 +19,13 @@
  * @brief Handle for the UART2 peripheral
  */
 UART_HandleTypeDef uart2_handle;
+
+/**
+ * @brief Handle for SPI1 & related dma
+ */
+SPI_HandleTypeDef hspi1;
+DMA_HandleTypeDef dma1_handle;
+
 /**
  * @brief Buffer to be used for UART2 communication (log/debug)
  */
@@ -26,6 +36,7 @@ uint8_t *uart2_buf_head = uart2_buf;    // Pointer to fill the buffer
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 static HAL_StatusTypeDef USART2_Init(void);
+static HAL_StatusTypeDef SPI1_Init(SPI_HandleTypeDef *hspi);
 
 /**
  * @brief Redirects printf() to UART2
@@ -49,21 +60,31 @@ int main(void)
     ERROR_CHECK(USART2_Init()); 
     ERROR_CHECK(HAL_UART_RegisterCallback(&uart2_handle, HAL_UART_RX_COMPLETE_CB_ID,
                                           HAL_UART_RxCpltCallback));
-    ERROR_CHECK(HAL_UART_RegisterCallback(&uart2_handle, HAL_UART_TX_COMPLETE_CB_ID,
-                                          HAL_UART_TxCpltCallback));
+    // Load trigger on first character received (follows up in HAL_UART_RxCpltCallback)
+    HAL_UART_Receive_IT(&uart2_handle, uart2_buf, 1);
 
     // Initialize OV7670 Camera module
+    /*
     OV7670_pins_t CAMERA_PIN = {
         .PIN_SCL = OV7670_PIN_DEF(CAMERA_PORT_SCL, CAMERA_PIN_SCL),
         .PIN_SDA = OV7670_PIN_DEF(CAMERA_PORT_SDA, CAMERA_PIN_SDA),
         // etc.
     };
     OV7670_init_camera(&CAMERA_PIN);
-    OV7670_write_register(ADDR_GAIN, 0x40);
-    uint8_t rdata = 0;
-    OV7670_read_register(ADDR_GAIN, &rdata);
-    printf("%i\n", rdata);
-    
+    */
+
+    // Initialize SPI handles
+    ERROR_CHECK(SPI1_Init(&hspi1));
+
+    // Initialize LCD display
+    st7735s_init_tft(&hspi1);
+
+    // Generate monochrome frame
+    for (uint16_t pix = 0; pix < FRAME_SIZE; pix++) {
+        frame[pix] = 0x07E0;
+    }
+    // Send write command
+    st7735s_push_frame(&hspi1);
 
     while (1) {
         
@@ -87,7 +108,10 @@ static void SystemClock_Config(void)
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
-
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+    RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+    RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
+    RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
     err = HAL_RCC_OscConfig(&RCC_OscInitStruct);
     if (err != HAL_OK) {
         Error_Handler(__func__, err);
@@ -97,12 +121,11 @@ static void SystemClock_Config(void)
      */
     RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                                 |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-
-    err = HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0);
+    err = HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
     if (err != HAL_OK) {
         Error_Handler(__func__, err);
     }
@@ -123,6 +146,27 @@ static HAL_StatusTypeDef USART2_Init(void)
     uart2_handle.Init.OverSampling = UART_OVERSAMPLING_16;
     uart2_handle.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
     return HAL_UART_Init(&uart2_handle);
+}
+
+static HAL_StatusTypeDef SPI1_Init(SPI_HandleTypeDef *hspi)
+{
+    // Initialize SPI
+    SPI_InitTypeDef sp1_init = {
+        .Mode = SPI_MODE_MASTER,
+        .Direction = SPI_DIRECTION_1LINE,
+        .DataSize = SPI_DATASIZE_8BIT,
+        .CLKPolarity = SPI_POLARITY_LOW,
+        .CLKPhase = SPI_PHASE_1EDGE,
+        .NSS = SPI_NSS_HARD_OUTPUT,
+        .BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4,
+        .FirstBit = SPI_FIRSTBIT_MSB,
+        .CRCCalculation = SPI_CRCCALCULATION_DISABLE,
+        .NSSPMode = SPI_NSS_PULSE_ENABLE,
+        .TIMode = SPI_TIMODE_DISABLE
+    };
+    hspi->Instance = SPI1;
+    hspi->Init = sp1_init;
+    return HAL_SPI_Init(hspi);
 }
 
 /**

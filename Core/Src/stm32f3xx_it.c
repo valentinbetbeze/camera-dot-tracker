@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
+extern DMA_HandleTypeDef dma1_handle;
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
@@ -208,15 +209,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
         uart2_buf_head++;
         HAL_UART_Receive_IT(huart, uart2_buf_head, 1);
     }
-    
-}
-
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
-{
-    //HAL_UART_Receive_IT(huart, uart2_buf, 1);
 }
 
 void USART2_IRQHandler(void)
 {
     HAL_UART_IRQHandler(&uart2_handle);
+}
+
+
+void DMA1_Channel3_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&dma1_handle);
 }

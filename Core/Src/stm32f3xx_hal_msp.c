@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
+extern DMA_HandleTypeDef dma1_handle;
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
@@ -104,5 +105,45 @@ void HAL_UART_MspInit(UART_HandleTypeDef *huart)
         // Initialize UART interrupt
         HAL_NVIC_SetPriority(USART2_IRQn, 1, 0);
         HAL_NVIC_EnableIRQ(USART2_IRQn);
+    }
+}
+
+
+void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
+{
+    if (hspi->Instance == SPI1) {
+        // Enable SPI1 clock
+        __HAL_RCC_SPI1_CLK_ENABLE();
+
+        // Configure GPIOs
+        __HAL_RCC_GPIOA_CLK_ENABLE();
+        GPIO_InitTypeDef spi1_gpio_init = {
+            .Pin = GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_7,
+            .Mode = GPIO_MODE_AF_PP,
+            .Pull = GPIO_NOPULL,
+            .Speed = GPIO_SPEED_FREQ_HIGH,
+            .Alternate = GPIO_AF5_SPI1
+        };
+        HAL_GPIO_Init(GPIOA, &spi1_gpio_init);
+
+        // Configure DMA
+        __HAL_RCC_DMA1_CLK_ENABLE();
+        DMA_InitTypeDef dma1_init = {
+            .Direction = DMA_MEMORY_TO_PERIPH,
+            .PeriphInc = DMA_PINC_DISABLE,
+            .MemInc = DMA_MINC_ENABLE,
+            .PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD,
+            .MemDataAlignment = DMA_MDATAALIGN_HALFWORD,
+            .Mode = DMA_NORMAL,
+            .Priority = DMA_PRIORITY_LOW
+        };
+        dma1_handle.Instance = DMA1_Channel3;
+        dma1_handle.Init = dma1_init;
+        ERROR_CHECK(HAL_DMA_Init(&dma1_handle));
+
+        __HAL_LINKDMA(hspi, hdmatx, dma1_handle);
+        
+        HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 3, 0);
+        HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
     }
 }
