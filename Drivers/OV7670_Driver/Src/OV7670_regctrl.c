@@ -5,9 +5,53 @@
  * @date 2023-08-10
  */
 
-#include "OV7670_register_control.h"
-#include "OV7670_core.h"
-#include "OV7670_debug.h"
+#include "OV7670_regctrl.h"
+
+#define I2C_TIMEOUT         (25)            // ms timeout
+
+
+/**
+ * @brief OV7670 Camera module base adresses.
+ */
+#define ADDR_WRITE              (0x42)
+#define ADDR_READ               (0x43)
+
+
+/* Register control ***********************************************************/
+
+/**
+ * @brief Driver's I2C communication handle variable
+ */
+I2C_HandleTypeDef OV7670_hi2c;
+
+/**
+ * @brief Read the content of a register (1 byte).
+ * 
+ * @param reg Register to read
+ * @param data Buffer to store the value of the register
+ * 
+ * @note Read operation uses I2C in polling mode.
+ */
+static void OV7670_read_register(uint8_t reg, uint8_t *data)
+{
+    assert_param(data != NULL);
+    HAL_CHECK(HAL_I2C_Master_Transmit(&OV7670_hi2c, ADDR_WRITE,
+                                      &reg, 1, I2C_TIMEOUT));
+    HAL_CHECK(HAL_I2C_Master_Receive(&OV7670_hi2c, ADDR_READ,
+                                     data, 1, I2C_TIMEOUT));
+}
+
+/**
+ * @brief Write a byte onto a given register.
+ * 
+ * @param reg Register to update
+ * @param data Value to write
+ */
+static void OV7670_write_register(uint8_t reg, uint8_t data)
+{
+    HAL_CHECK(HAL_I2C_Mem_Write(&OV7670_hi2c, ADDR_WRITE,
+                                reg, 1, &data, 1, I2C_TIMEOUT));
+}
 
 /**
  * @brief Enable a parameter without affecting the rest of the register.
@@ -108,11 +152,9 @@ void OV7670_disable_vflip(void)
 
 void OV7670_set_INTCLK_div(uint8_t plldiv)
 {
+    assert_param(plldiv < 128);
     if (plldiv < 2) {
         OV7670_disable_parameter(ADDR_CLKRC, (1U<<6));
-    }
-    else if (plldiv > 128) {
-        OV7670_LOG_ERROR(OV7670_PLL_MODIF_FORBIDDEN);
     }
     OV7670_write_register(ADDR_CLKRC, (plldiv/2)-1);
 }
@@ -139,10 +181,9 @@ void OV7670_set_INTCLK_mul(uint8_t pllmul)
             regdata |= (1U<<7) | (1U<<6);
             break;
         default:
-            OV7670_LOG_ERROR(OV7670_PLL_MODIF_FORBIDDEN);
+            assert_param(0);
             return;
     }
-
     OV7670_write_register(ADDR_DBLV, regdata);
 }
 

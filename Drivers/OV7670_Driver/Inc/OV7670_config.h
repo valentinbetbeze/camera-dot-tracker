@@ -21,14 +21,21 @@ extern "C" {
 
 #include "stm32f3xx_hal.h"
 
-
 /**
  * @brief Comment to disable debug mode.
  * @warning Disabling debug mode will bypass input verifications,
  * error and exception handling from all functions.
  */
-#define OV7670_DEBUG        (1U)
+#define OV7670_DEBUG        (SPI_1LINE_TX)
 
+/**
+ * @brief Error_Handler external reference
+ * 
+ * @warning Modify the function prototype and arguments according to your
+ * custom implementation.
+ */
+extern void Error_Handler(const char *func_name, HAL_StatusTypeDef err);
+#define handle_error        Error_Handler(__func__, err)
 
 /**
  * @brief Uncomment the I2C instance that is to be used for communicating
@@ -45,6 +52,20 @@ extern "C" {
  */
 #define I2C_PRIORITY        2       // Interrupt priority for I2C communication
 
+
+
+
+#ifdef OV7670_DEBUG
+#define HAL_CHECK(fct)                                              \
+                            do {                                    \
+                                HAL_StatusTypeDef err = fct;        \
+                                if (err != HAL_OK) {                \
+                                    handle_error;                   \
+                                }                                   \
+                            } while (0U)
+#else
+#define HAL_CHECK(fct)      fct
+#endif
 
 
 #if (!defined(OV7670_I2C1) && !defined(OV7670_I2C2) && !defined(OV7670_I2C3))
