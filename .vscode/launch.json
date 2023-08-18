@@ -10,12 +10,12 @@
             "executable": "${workspaceRoot}/build/camera-dot-tracker.elf",
             "request": "launch",
             "type": "cortex-debug",
-            "showDevDebugOutput": "raw",
+            "showDevDebugOutput": "vscode",
             "servertype": "stutil",
             "device": "STM32F303RE",
             "interface": "swd",
             "runToEntryPoint": "main",
-            "preLaunchCommands": ["make"],
+            "preLaunchCommands": ["make"], // compiles before debug starts
             "swoConfig":{
                 "enabled":true,
                 "source":"probe",
@@ -29,7 +29,8 @@
                         "encoding":"ascii"
                     }
                 ]
-            }
+            },
+            "svdFile": "${workspaceRoot}/STM32F303.svd",
         }
     ]
 }

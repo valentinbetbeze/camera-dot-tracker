@@ -87,7 +87,7 @@ int main(void)
     st7735s_push_frame(&hspi1);
 
     while (1) {
-        
+        // Processor does nothing
     }
 }
 
