@@ -16,15 +16,6 @@ extern "C" {
 #include "OV7670_config.h"
 
 
-extern I2C_HandleTypeDef OV7670_hi2c;
-
-/**
- * @brief OV7670 Camera module base adresses.
- */
-#define ADDR_DEVICE             (0x21)
-#define ADDR_WRITE              ((ADDR_DEVICE<<1) | 0x00U)
-#define ADDR_READ               ((ADDR_DEVICE<<1) | 0x01U)
-
 /* Data Structures ************************************************************/
 
 #define OV7670_PIN_DEF(port, num)   {.PORT = port, .NUM = num}
@@ -62,24 +53,6 @@ typedef struct {
 /* Function prototypes ********************************************************/
 
 /**
- * @brief Read the content of a register (1 byte).
- * 
- * @param reg Register to read
- * @param data Buffer to store the value of the register
- * 
- * @note Read operation uses I2C in polling mode.
- */
-void OV7670_read_register(uint8_t reg, uint8_t *data);
-
-/**
- * @brief Write a byte onto a given register.
- * 
- * @param reg Register to update
- * @param data Value to write
- */
-void OV7670_write_register(uint8_t reg, uint8_t data);
-
-/**
  * @brief Initialize the camera driver.
  * 
  * @param pin Handle to the set of pins used for the camera module
@@ -95,22 +68,6 @@ void OV7670_init_camera(OV7670_pins_t *pin);
  * @param pin Handle to the set of pins used for the camera module
  */
 void OV7670_deinit_camera(OV7670_pins_t *pin);
-
-/**
- * @brief I2Cx ISRs
- * 
- * @note Not used in this version
- */
-#if defined(OV7670_I2C1)
-void I2C1_EV_IRQHandler(void);
-void I2C1_ER_IRQHandler(void);
-#elif defined(OV7670_I2C2)
-void I2C2_EV_IRQHandler(void);
-void I2C2_ER_IRQHandler(void);
-#elif defined(OV7670_I2C3)
-void I2C3_EV_IRQHandler(void);
-void I2C3_ER_IRQHandler(void);
-#endif
 
 
 #ifdef __cplusplus
