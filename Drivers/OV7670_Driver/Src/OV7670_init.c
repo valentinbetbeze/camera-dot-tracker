@@ -105,6 +105,8 @@ static void OV7670_init_GPIO(OV7670_pins_t *pin)
 
 /**
  * @brief Configure Master Clock Output.
+ * 
+ * @note GPIO PA8 on STM32F303xE
  */
 static void OV7670_config_MCO(void)
 {
@@ -128,7 +130,7 @@ static void OV7670_config_MCO(void)
 
         HAL_CHECK(HAL_RCC_OscConfig(&RCC_OscInitStruct));
     }
-    HAL_RCC_MCOConfig(RCC_MCO, RCC_MCO1SOURCE_PLLCLK, RCC_MCODIV_1);
+    HAL_RCC_MCOConfig(RCC_MCO, RCC_MCO1SOURCE_PLLCLK, RCC_MCODIV_4);
 }
 
 

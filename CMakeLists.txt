@@ -37,7 +37,8 @@ set(CUBEMX_INCLUDE_DIRECTORIES
 set(PROJECT_INCLUDE_DIRECTORIES
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/${PROJECT_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/OV7670_Driver/Inc)
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/OV7670_Driver/Inc
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/ST7735S_driver/include)
 
 # Sources
 file(GLOB_RECURSE STM32CUBEMX_SOURCES
@@ -46,7 +47,8 @@ file(GLOB_RECURSE STM32CUBEMX_SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/${MCU_FAMILY}_HAL_Driver/*.c)
 file(GLOB_RECURSE PROJECT_SOURCES FOLLOW_SYMLINKS
     ${PROJECT_DIR}/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/OV7670_Driver/*.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/OV7670_Driver/*.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/Drivers/ST7735S_driver/*.c)
 
 # Executable files
 add_executable(${EXECUTABLE}
@@ -69,7 +71,7 @@ target_compile_options(${EXECUTABLE} PRIVATE
     ${CPU_PARAMETERS}
     -Wall
     -Wextra
-    -Wpedantic
+#    -Wpedantic
     -Wno-unused-parameter
     $<$<COMPILE_LANGUAGE:CXX>:
         -Wno-volatile

@@ -27,40 +27,47 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
+#include <stdio.h>
+#include <string.h>
 #include "stm32f3xx_hal.h"
 
-/* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
-
-/* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
-/* USER CODE BEGIN ET */
+extern UART_HandleTypeDef uart2_handle;
+extern uint8_t uart2_buf[];
+extern uint8_t *uart2_buf_head;
 
-/* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
-/* USER CODE BEGIN EC */
+#define USART2_PORT_RX_TX       GPIOA
+#define USART2_PIN_TX           GPIO_PIN_2      // PA2
+#define USART2_PIN_RX           GPIO_PIN_3      // PA3
 
-/* USER CODE END EC */
+#define CAMERA_PORT_SCL         GPIOA
+#define CAMERA_PIN_SCL          GPIO_PIN_9      // PA9
+#define CAMERA_PORT_SDA         GPIOA
+#define CAMERA_PIN_SDA          GPIO_PIN_10     // PA10
+
+#define TIM2_CH1_PORT           GPIOA
+#define TIM2_CH1_PIN            GPIO_PIN_0
+
+#define UART_BUF_SIZE           30
+
 
 /* Exported macro ------------------------------------------------------------*/
-/* USER CODE BEGIN EM */
-
-/* USER CODE END EM */
+#define HAL_ERROR_CHECK(fct)                                                    \
+                        do {                                                \
+                            HAL_StatusTypeDef err = fct;                    \
+                            if (err != HAL_OK) {                            \
+                                Error_Handler(__func__, err);               \
+                            }                                               \
+                        } while(0U);
 
 /* Exported functions prototypes ---------------------------------------------*/
+
 void Error_Handler(const char *func_name, HAL_StatusTypeDef err);
 
-/* USER CODE BEGIN EFP */
 
-/* USER CODE END EFP */
-
-/* Private defines -----------------------------------------------------------*/
-
-/* USER CODE BEGIN Private defines */
-
-/* USER CODE END Private defines */
 
 #ifdef __cplusplus
 }
