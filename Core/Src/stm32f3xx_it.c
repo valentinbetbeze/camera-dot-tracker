@@ -23,7 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
-extern DMA_HandleTypeDef dma1_handle;
+extern DMA_HandleTypeDef hdam_spi1;
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
@@ -219,5 +219,11 @@ void USART2_IRQHandler(void)
 
 void DMA1_Channel3_IRQHandler(void)
 {
-    HAL_DMA_IRQHandler(&dma1_handle);
+    HAL_DMA_IRQHandler(&hdam_spi1);
+}
+
+
+void DMA1_Channel5_IRQHandler(void)
+{
+    HAL_DMA_IRQHandler(&hdam_spi1);
 }

@@ -7,9 +7,8 @@
  */
 
 #include "main.h"
-#include "OV7670_core.h"
-#include "OV7670_register_control.h"
-#include "OV7670_debug.h"
+#include "OV7670_init.h"
+#include "OV7670_regctrl.h"
 #include "st7735s_hal.h"
 
 
@@ -24,7 +23,13 @@ UART_HandleTypeDef uart2_handle;
  * @brief Handle for SPI1 & related dma
  */
 SPI_HandleTypeDef hspi1;
-DMA_HandleTypeDef dma1_handle;
+DMA_HandleTypeDef hdam_spi1;
+
+/**
+ * @brief Timer 2 handle
+ */
+TIM_HandleTypeDef htim2;
+DMA_HandleTypeDef hdma_tim2[7];
 
 /**
  * @brief Buffer to be used for UART2 communication (log/debug)
@@ -36,14 +41,15 @@ uint8_t *uart2_buf_head = uart2_buf;    // Pointer to fill the buffer
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 static HAL_StatusTypeDef USART2_Init(void);
-static HAL_StatusTypeDef SPI1_Init(SPI_HandleTypeDef *hspi);
+static HAL_StatusTypeDef SPI1_Init(void);
+static void TIM2_Init(void);
 
 /**
  * @brief Redirects printf() to UART2
  */
 int __io_putchar(int ch)
 {
-    ERROR_CHECK(HAL_UART_Transmit(&uart2_handle, (uint8_t *)&ch, 1, 0xFFFF));
+    HAL_ERROR_CHECK(HAL_UART_Transmit(&uart2_handle, (uint8_t *)&ch, 1, 0xFFFF));
     return ch;
 }
 
@@ -51,43 +57,44 @@ int __io_putchar(int ch)
 int main(void)
 {
     /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-    ERROR_CHECK(HAL_Init());
+    HAL_ERROR_CHECK(HAL_Init());
 
     /* Configure the system clock */
     SystemClock_Config();
 
     // Initialize USART2 for Serial Monitor
-    ERROR_CHECK(USART2_Init()); 
-    ERROR_CHECK(HAL_UART_RegisterCallback(&uart2_handle, HAL_UART_RX_COMPLETE_CB_ID,
+    HAL_ERROR_CHECK(USART2_Init()); 
+    HAL_ERROR_CHECK(HAL_UART_RegisterCallback(&uart2_handle, HAL_UART_RX_COMPLETE_CB_ID,
                                           HAL_UART_RxCpltCallback));
     // Load trigger on first character received (follows up in HAL_UART_RxCpltCallback)
-    HAL_UART_Receive_IT(&uart2_handle, uart2_buf, 1);
+    HAL_ERROR_CHECK(HAL_UART_Receive_IT(&uart2_handle, uart2_buf, 1));
 
     // Initialize OV7670 Camera module
-    /*
-    OV7670_pins_t CAMERA_PIN = {
+    OV7670_pins_t camera_pins = {
         .PIN_SCL = OV7670_PIN_DEF(CAMERA_PORT_SCL, CAMERA_PIN_SCL),
         .PIN_SDA = OV7670_PIN_DEF(CAMERA_PORT_SDA, CAMERA_PIN_SDA),
         // etc.
     };
-    OV7670_init_camera(&CAMERA_PIN);
-    */
+    OV7670_init_camera(&camera_pins);
+    TIM2_Init();
+    uint32_t pData[10];
+    HAL_ERROR_CHECK(HAL_TIM_IC_Start_DMA(&htim2, TIM_CHANNEL_1, pData, 40));
 
     // Initialize SPI handles
-    ERROR_CHECK(SPI1_Init(&hspi1));
+    HAL_ERROR_CHECK(SPI1_Init());
 
     // Initialize LCD display
     st7735s_init_tft(&hspi1);
 
     // Generate monochrome frame
     for (uint16_t pix = 0; pix < FRAME_SIZE; pix++) {
-        frame[pix] = 0x07E0;
+        frame[pix] = 0xF8E0;
     }
     // Send write command
     st7735s_push_frame(&hspi1);
-
+    
     while (1) {
-        // Processor does nothing
+
     }
 }
 
@@ -98,7 +105,6 @@ int main(void)
   */
 static void SystemClock_Config(void)
 {
-    HAL_StatusTypeDef err;
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
@@ -112,10 +118,7 @@ static void SystemClock_Config(void)
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
     RCC_OscInitStruct.PLL.PLLMUL = RCC_PLL_MUL9;
     RCC_OscInitStruct.PLL.PREDIV = RCC_PREDIV_DIV1;
-    err = HAL_RCC_OscConfig(&RCC_OscInitStruct);
-    if (err != HAL_OK) {
-        Error_Handler(__func__, err);
-    }
+    HAL_ERROR_CHECK(HAL_RCC_OscConfig(&RCC_OscInitStruct));
 
     /** Initializes the CPU, AHB and APB buses clocks
      */
@@ -125,10 +128,7 @@ static void SystemClock_Config(void)
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-    err = HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
-    if (err != HAL_OK) {
-        Error_Handler(__func__, err);
-    }
+    HAL_ERROR_CHECK(HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2));
 }
 
 /**
@@ -148,7 +148,10 @@ static HAL_StatusTypeDef USART2_Init(void)
     return HAL_UART_Init(&uart2_handle);
 }
 
-static HAL_StatusTypeDef SPI1_Init(SPI_HandleTypeDef *hspi)
+/**
+ * @brief Initialize SPI1
+ */
+static HAL_StatusTypeDef SPI1_Init(void)
 {
     // Initialize SPI
     SPI_InitTypeDef sp1_init = {
@@ -164,9 +167,33 @@ static HAL_StatusTypeDef SPI1_Init(SPI_HandleTypeDef *hspi)
         .NSSPMode = SPI_NSS_PULSE_ENABLE,
         .TIMode = SPI_TIMODE_DISABLE
     };
-    hspi->Instance = SPI1;
-    hspi->Init = sp1_init;
-    return HAL_SPI_Init(hspi);
+    hspi1.Instance = SPI1;
+    hspi1.Init = sp1_init;
+    return HAL_SPI_Init(&hspi1);
+}
+
+/**
+ * @brief Initialize timer TIM2
+ */
+static void TIM2_Init(void)
+{
+    htim2.Instance = TIM2;
+    htim2.Channel = HAL_TIM_ACTIVE_CHANNEL_1;
+    htim2.Init.Prescaler = 1 - 1;
+    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+    htim2.Init.Period = 0xFFFFFFFF;
+    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+    HAL_ERROR_CHECK(HAL_TIM_IC_Init(&htim2));
+
+    TIM_IC_InitTypeDef tim2_IC_init = {
+        .ICPolarity = TIM_ICPOLARITY_RISING,
+        .ICSelection = TIM_ICSELECTION_DIRECTTI,
+        .ICPrescaler = TIM_ICPSC_DIV1,
+        .ICFilter = 0
+    };
+    HAL_ERROR_CHECK(HAL_TIM_IC_ConfigChannel(&htim2, &tim2_IC_init,
+                                             TIM_CHANNEL_1));
 }
 
 /**
@@ -178,16 +205,16 @@ void Error_Handler(const char *func_name, HAL_StatusTypeDef err)
     // Log HAL error message via UART
     switch (err) {
         case HAL_ERROR:
-            printf("error: HAL_ERROR returned from %s()", func_name);
+            printf("HAL_ERROR found in %s\n", func_name);
             break;
         case HAL_BUSY:
-            printf("error: HAL_BUSY returned from %s()", func_name);
+            printf("HAL_BUSY found in %s\n", func_name);
             break;
         case HAL_TIMEOUT:
-            printf("error: HAL_TIMEOUT returned from %s()", func_name);
+            printf("HAL_TIMEOUT found in %s\n", func_name);
             break;
         default:
-            printf("error: HAL_OK returned from %s()", func_name);
+            printf("HAL_OK found in %s\n", func_name);
             break;
     }
     // Disable interrupts
@@ -207,9 +234,6 @@ void Error_Handler(const char *func_name, HAL_StatusTypeDef err)
 void assert_failed(uint8_t *file, uint32_t line)
 {
     printf("%s: line %lu --> assertion failed:\n", file, line);
-#ifdef OV7670_DEBUG
-    OV7670_print_error(&uart2_handle);
-#endif
-    while (1); // Freeze
+    while (1);
 }
 #endif /* USE_FULL_ASSERT */

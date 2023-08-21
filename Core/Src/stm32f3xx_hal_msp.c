@@ -24,7 +24,8 @@
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
-extern DMA_HandleTypeDef dma1_handle;
+extern DMA_HandleTypeDef hdam_spi1;
+extern DMA_HandleTypeDef hdma_tim2[7];
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
@@ -63,16 +64,6 @@ void HAL_MspInit(void)
 {
     __HAL_RCC_SYSCFG_CLK_ENABLE();
     __HAL_RCC_PWR_CLK_ENABLE();
-
-    // Init LED2 (user led) GPIO
-    __HAL_RCC_GPIOA_CLK_ENABLE();
-    GPIO_InitTypeDef gpio_init = {
-        .Pin = LED2_PIN,
-        .Mode = GPIO_MODE_OUTPUT_PP,
-        .Pull = GPIO_NOPULL,
-        .Speed = GPIO_SPEED_FREQ_HIGH
-    };
-    HAL_GPIO_Init(LED2_PORT, &gpio_init);
 
     /* System interrupt init*/
 
@@ -137,13 +128,54 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef *hspi)
             .Mode = DMA_NORMAL,
             .Priority = DMA_PRIORITY_LOW
         };
-        dma1_handle.Instance = DMA1_Channel3;
-        dma1_handle.Init = dma1_init;
-        ERROR_CHECK(HAL_DMA_Init(&dma1_handle));
+        hdam_spi1.Instance = DMA1_Channel3;
+        hdam_spi1.Init = dma1_init;
+        HAL_ERROR_CHECK(HAL_DMA_Init(&hdam_spi1));
 
-        __HAL_LINKDMA(hspi, hdmatx, dma1_handle);
+        __HAL_LINKDMA(hspi, hdmatx, hdam_spi1);
         
         HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, 3, 0);
         HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
     }
+}
+
+
+void HAL_TIM_IC_MspInit(TIM_HandleTypeDef *htim)
+{
+    // Enable clocks
+    __HAL_RCC_TIM2_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    // Configure GPIO as AF
+    GPIO_InitTypeDef tim2_gpio_init = {
+        .Pin = TIM2_CH1_PIN,
+        .Mode = GPIO_MODE_AF_PP,
+        .Alternate = GPIO_AF1_TIM2,
+        .Pull = GPIO_NOPULL,
+        .Speed = GPIO_SPEED_FREQ_HIGH
+    };
+    HAL_GPIO_Init(TIM2_CH1_PORT, &tim2_gpio_init);
+
+    // Configure DMA
+    __HAL_RCC_DMA2_CLK_ENABLE();
+    DMA_InitTypeDef dma_tim2_init = {
+        .Direction = DMA_PERIPH_TO_MEMORY,
+        .PeriphInc = DMA_PINC_DISABLE,
+        .MemInc = DMA_MINC_ENABLE,
+        .PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD,
+        .MemDataAlignment = DMA_MDATAALIGN_HALFWORD,
+        .Mode = DMA_NORMAL,
+        .Priority = DMA_PRIORITY_LOW
+    };
+    hdma_tim2[TIM_DMA_ID_TRIGGER].Instance = DMA1_Channel5;
+    hdma_tim2[TIM_DMA_ID_TRIGGER].Init = dma_tim2_init;
+    HAL_ERROR_CHECK(HAL_DMA_Init(&hdma_tim2[TIM_DMA_ID_TRIGGER]));
+
+    htim->hdma[7] = hdma_tim2;
+    for (uint8_t i = 0; i < sizeof(hdma_tim2)/sizeof(hdma_tim2[0]); i++) {
+        hdma_tim2[i].Parent = htim;
+    }
+
+    HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 1, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
 }
