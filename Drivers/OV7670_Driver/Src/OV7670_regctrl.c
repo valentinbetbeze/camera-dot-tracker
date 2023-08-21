@@ -88,14 +88,14 @@ static void OV7670_disable_parameter(uint8_t reg, uint8_t data)
 }
 
 // Gain between 0 and 1023
-void OV7670_set_gain(uint16_t word)
+void OV7670_set_gain(uint16_t hword)
 {
-    OV7670_write_register(ADDR_GAIN, word & 0xFFU);
+    OV7670_write_register(ADDR_GAIN, hword & 0xFFU);
     // data buffer for read operation
     uint8_t rd;
     OV7670_read_register(ADDR_VREF, &rd);
-    rd = ((word>>8) & 0x1U) ? rd | (1U<<6) : rd & ~(1U<<6);
-    rd = ((word>>9) & 0x1U) ? rd | (1U<<7) : rd & ~(1U<<7);
+    rd = ((hword>>8) & 0x1U) ? rd | (1U<<6) : rd & ~(1U<<6);
+    rd = ((hword>>9) & 0x1U) ? rd | (1U<<7) : rd & ~(1U<<7);
     OV7670_write_register(ADDR_VREF, rd);
 }
 

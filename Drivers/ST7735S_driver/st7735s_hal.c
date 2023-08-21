@@ -20,9 +20,9 @@ static void send_command(SPI_HandleTypeDef *hspi, uint8_t command)
         __HAL_SPI_ENABLE(hspi);
     }
     // Enable command mode
-    HAL_GPIO_WritePin(GPIOA, PIN_LCD_RS, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOB, PIN_LCD_RS, GPIO_PIN_RESET);
     // Transmit command
-    ERROR_CHECK(HAL_SPI_Transmit(hspi, &command, 1, 100));
+    HAL_ERROR_CHECK(HAL_SPI_Transmit(hspi, &command, 1, 100));
 }
 
 
@@ -47,9 +47,9 @@ static void send_data(SPI_HandleTypeDef *hspi, uint8_t *data,
         __HAL_SPI_ENABLE(hspi);
     }
     // Enable data mode
-    HAL_GPIO_WritePin(GPIOA, PIN_LCD_RS, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GPIOB, PIN_LCD_RS, GPIO_PIN_SET);
     // Transmit command
-    ERROR_CHECK(HAL_SPI_Transmit(hspi, data, len, 100));
+    HAL_ERROR_CHECK(HAL_SPI_Transmit(hspi, data, len, 100));
 }
 
 
@@ -57,14 +57,21 @@ void st7735s_init_tft(SPI_HandleTypeDef *hspi)
 {
     // Configure GPIOs
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    GPIO_InitTypeDef tft_gpio_init = {
-        .Pin = PIN_LCD_RST | PIN_LCD_RS,
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    GPIO_InitTypeDef rst_init = {
+        .Pin = PIN_LCD_RST,
         .Mode = GPIO_MODE_OUTPUT_PP,
         .Pull = GPIO_NOPULL,
         .Speed = GPIO_SPEED_FREQ_LOW,
     };
-    HAL_GPIO_Init(GPIOA, &tft_gpio_init);
-
+    HAL_GPIO_Init(GPIOA, &rst_init);
+    GPIO_InitTypeDef rs_init = {
+        .Pin = PIN_LCD_RS,
+        .Mode = GPIO_MODE_OUTPUT_PP,
+        .Pull = GPIO_NOPULL,
+        .Speed = GPIO_SPEED_FREQ_LOW,
+    };
+    HAL_GPIO_Init(GPIOB, &rs_init);
     uint8_t parameter;
     // Hardware reset
     HAL_GPIO_WritePin(GPIOA, PIN_LCD_RST, GPIO_PIN_RESET);
@@ -152,7 +159,7 @@ void st7735s_push_frame(SPI_HandleTypeDef *hspi)
         __HAL_SPI_ENABLE(hspi);
     }
 
-    HAL_GPIO_WritePin(GPIOA, PIN_LCD_RS, GPIO_PIN_SET);
-    ERROR_CHECK(HAL_SPI_Transmit_DMA(hspi, (uint8_t *)frame, sizeof(frame)));
+    HAL_GPIO_WritePin(GPIOB, PIN_LCD_RS, GPIO_PIN_SET);
+    HAL_ERROR_CHECK(HAL_SPI_Transmit_DMA(hspi, (uint8_t*)frame, sizeof(frame)));
 }
 

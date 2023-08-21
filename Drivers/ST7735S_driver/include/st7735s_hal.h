@@ -23,7 +23,7 @@
 
 
 #define PIN_LCD_RST         GPIO_PIN_6
-#define PIN_LCD_RS          GPIO_PIN_8
+#define PIN_LCD_RS          GPIO_PIN_9
 
 /*************************************************
  * ST7735S functions (System/Panel)

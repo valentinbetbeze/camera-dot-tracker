@@ -211,9 +211,9 @@ extern "C" {
  /**
   * @brief Set the gain //TODO: better descr pls
   * 
-  * @param word Gain value between 0-1023
+  * @param hword Gain value between 0-1023
   */
-void OV7670_set_gain(uint16_t word);
+void OV7670_set_gain(uint16_t hword);
 void OV7670_set_blue_gain(uint8_t byte);
 void OV7670_set_red_gain(uint8_t byte);
 void OV7670_enable_CCIR656_format(void);
